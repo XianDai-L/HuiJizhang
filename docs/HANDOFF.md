@@ -38,9 +38,11 @@
 ## 2. 目录职责（来自 AGENTS.md）
 
 ```
-d:\HuiJi\
+d:\HuiJi\                   已建 git 仓库（远程 github.com/XianDai-L/HuiJizhang）
+├── .gitignore             排除密钥 / APK / 隐私素材 / 构建产物
 ├── AGENTS.md              工作区规则（最高优先级）
 ├── docs\                  AI 产物区：设计文档、交接文档、实验记录
+├── p2-experiment\         AI 产物区：截图解析 A/B 实验工程（复用 llm-client 源码）
 └── WiseBook\              产品代码区（Gradle 多模块根）
     ├── app\                Android 应用
     ├── money-parser\       纯 JVM：金额解析与双通道校验
@@ -525,7 +527,9 @@ D:\SDK\emulator\emulator.exe -avd Pixel_8 -no-window -no-audio -no-boot-anim -gp
 
 - 用户手上有 **DeepSeek 官方** + **硅基流动** 两个 Key（都是低额度测试 Key）
 - **绝对不要把 Key 写进任何文件**：不进源码、不进 `build.gradle.kts`、不进 git
-- 正确做法：`local.properties`（已在 `.gitignore`）→ `buildConfigField`；或运行时环境变量
+- 正确做法：`local.properties` → `buildConfigField`；或运行时环境变量
+  （**2026-10-04 起这一点才真正成立**：`d:\HuiJi` 已建仓库，根 `.gitignore` 排除了 `local.properties`
+  与 `*.apk`。此前那句"已在 .gitignore"是没有仓库时的空头承诺）
 - 真实调用冒烟测试的启用方式见 `llm-client/src/test/java/com/wisebook/llm/RealCallSmokeTest.java` 的注释
 - ⚠️ 上一次对话记录里出现过明文 Key，**提醒用户轮换**
 
