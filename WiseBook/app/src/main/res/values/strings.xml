@@ -1,0 +1,105 @@
+<resources>
+    <string name="app_name">慧记</string>
+
+    <!-- 首页 -->
+    <string name="home_title">慧记</string>
+    <string name="home_subtitle">一句话把钱记清楚</string>
+    <string name="home_open_drafts">待处理草稿：%1$d 笔</string>
+    <string name="home_action_settings">设置</string>
+    <string name="home_action_ledger">账本</string>
+    <string name="home_action_report">报表</string>
+
+    <!-- 首页底部的输入栏（P1 的主入口） -->
+    <string name="home_input_hint">说一句话，我来记账</string>
+    <string name="home_examples">试试：「今天打车 28」「昨天下午买菜三百五」「上周三请客 260」</string>
+    <string name="home_send">发送</string>
+    <string name="home_parsing">正在解析…（模型响应通常几秒，最长等 2 分钟）</string>
+    <string name="home_switch_to_voice">切换到语音输入</string>
+    <string name="home_switch_to_text">切换到文字输入</string>
+    <string name="home_speak_hint">点一下开始说话</string>
+    <string name="home_listening">正在听…</string>
+    <string name="home_voice_unavailable">这台设备上没有可用的语音识别，直接打字吧</string>
+    <string name="home_voice_permission_denied">没有麦克风权限，没法用语音。到系统设置里给「慧记」开一下</string>
+    <string name="home_voice_failed">没听清，再说一次试试</string>
+    <string name="home_result_open_hint">点这行看这笔账</string>
+
+    <!-- 设置 -->
+    <string name="settings_title">设置</string>
+    <string name="settings_confirm_mode">确认档位</string>
+    <string name="settings_mode_strict">每笔确认：所有草稿都过确认页</string>
+    <string name="settings_mode_large">大额确认：小额直接记账，大额或存疑才问</string>
+    <string name="settings_mode_doubtful">存疑才确认：没风险就直接记账</string>
+    <string name="settings_threshold">大额阈值（元）</string>
+    <string name="settings_scheme">分类方案</string>
+    <string name="settings_scheme_simple">简单：只用一级分类</string>
+    <string name="settings_scheme_standard">标准：可以用到二级分类</string>
+    <string name="settings_provider">模型服务商</string>
+    <string name="settings_model">模型名</string>
+    <string name="settings_model_hint">留空则用该服务商的默认模型</string>
+    <string name="settings_api_key">API Key</string>
+    <string name="settings_api_key_hint">留空则用构建时注入的默认 Key</string>
+    <string name="settings_action_save">保存</string>
+    <string name="settings_credentials_note">Key 只存在本机应用私有目录，不进源码、不进版本库。</string>
+
+    <!-- 待处理草稿列表 -->
+    <string name="pending_title">待处理草稿</string>
+    <string name="pending_empty">没有待处理的草稿</string>
+    <string name="pending_hint">这些草稿都还没记账。点进去核对一下就能落账。</string>
+
+    <!-- 确认页 -->
+    <string name="confirm_title">核对这笔账</string>
+    <string name="confirm_why">为什么要你核对</string>
+    <string name="confirm_amount">金额（元）</string>
+    <string name="confirm_direction">收支方向</string>
+    <string name="confirm_category">分类</string>
+    <string name="confirm_payment">支付方式</string>
+    <string name="confirm_payment_unset">未填（可以不填）</string>
+    <string name="confirm_occurred_at">发生时间</string>
+    <string name="confirm_merchant">商户 / 对方</string>
+    <string name="confirm_questions">需要你补充的</string>
+    <string name="confirm_raw_input">你原来说的</string>
+    <string name="confirm_action_post">确认并记账</string>
+    <string name="confirm_action_save">保存修改并重新校验</string>
+    <string name="confirm_action_discard">丢弃这笔</string>
+
+    <!-- 账本列表 -->
+    <string name="ledger_title">账本</string>
+    <string name="ledger_empty">这个月还没有账目</string>
+    <string name="ledger_hint">点一条账目可以改正分类或撤销。撤销只删账目，原始输入会保留。</string>
+    <string name="ledger_auto_badge">自动记</string>
+    <string name="ledger_action_correct">改正分类</string>
+    <string name="ledger_action_void">撤销这笔</string>
+    <string name="ledger_void_done">已撤销这笔账目</string>
+    <string name="ledger_correct_done">已改正，账目与草稿同步更新</string>
+
+    <!-- 报表 -->
+    <string name="report_title">报表</string>
+    <string name="report_expense">本月支出</string>
+    <string name="report_income">本月收入</string>
+    <string name="report_estimate_note">含 %1$d 笔估算，浮动约 %2$s</string>
+    <string name="report_expense_by_root">支出去向（按一级分类）</string>
+    <string name="report_income_by_root">收入来源（按一级分类）</string>
+    <string name="report_exclude_transfer">排除转账</string>
+    <string name="report_transfer_included">含 %1$d 笔转账，合计 %2$s，已计入上面的支出</string>
+    <string name="report_transfer_note">已排除 %1$d 笔转账，合计 %2$s</string>
+    <string name="report_empty">这个月还没有账目</string>
+    <string name="report_hint">按一级分类聚合，所以「简单 / 标准」两种分类方案切换时这张表不用改一个字。</string>
+
+    <!-- 分类选择器 -->
+    <string name="pick_category_title">选分类</string>
+    <string name="action_cancel">取消</string>
+
+    <!-- 账目详情 -->
+    <string name="detail_title">账目详情</string>
+    <string name="detail_section_input">输入解析</string>
+    <string name="detail_expand">展开解析详情</string>
+    <string name="detail_collapse">收起解析详情</string>
+    <string name="detail_section_amount">金额</string>
+    <string name="detail_section_time">时间</string>
+    <string name="detail_section_fields">明细</string>
+    <string name="detail_section_posting">入账信息</string>
+    <string name="detail_raw_text">你原来说的</string>
+    <string name="detail_raw_image">原始截图</string>
+    <string name="detail_raw_audio">原始录音</string>
+    <string name="detail_raw_file">原始文件</string>
+</resources>

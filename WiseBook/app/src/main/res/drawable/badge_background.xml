@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 「自动记」小标记的底：圆角矩形，比纯色块好看一点点，成本是一个文件 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="@color/auto_posted_badge" />
+    <corners android:radius="4dp" />
+</shape>

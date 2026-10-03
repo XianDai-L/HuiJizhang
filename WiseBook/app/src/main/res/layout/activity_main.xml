@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  首页。P1 的主入口，也是唯一的输入入口。
+
+  形态上分两截：上面是可滚动的内容区（待处理、账本、报表、设置），
+  下面是<b>贴在屏幕底部</b>的输入栏。输入栏贴底而不是跟着内容往下排，有两个原因：
+  一是键盘弹起时它会被顶上来，视线不用挪；二是上面那截可以随便加内容，输入栏的位置不变。
+
+  刻意不放「解析」「清空」两个按钮：上箭头就是发送，而发送即清空输入框
+  （见 HANDOFF 决策 34），清空按钮因此没有存在意义。
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:paddingHorizontal="20dp"
+    android:paddingTop="20dp"
+    android:paddingBottom="8dp"
+    tools:context=".ui.ledger.MainActivity">
+
+    <!-- 上面这截要能撑满剩余空间，所以 weight=1 + height=0dp；
+         否则内容少的时候输入栏会被顶到屏幕中间 -->
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:text="@string/home_title"
+                android:textSize="32sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="@string/home_subtitle"
+                android:textSize="15sp" />
+
+            <TextView
+                android:id="@+id/open_draft_count"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="28dp"
+                android:background="?android:attr/selectableItemBackground"
+                android:padding="12dp"
+                android:textSize="15sp"
+                tools:text="待处理草稿：3 笔（点这里处理）" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:orientation="horizontal">
+
+                <Button
+                    android:id="@+id/btn_ledger"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/home_action_ledger"
+                    android:textSize="17sp" />
+
+                <Button
+                    android:id="@+id/btn_report"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
+                    android:layout_weight="1"
+                    android:text="@string/home_action_report"
+                    android:textSize="17sp" />
+            </LinearLayout>
+
+            <Button
+                android:id="@+id/btn_settings"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:text="@string/home_action_settings"
+                android:textSize="17sp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="32dp"
+                android:text="@string/home_examples"
+                android:textSize="13sp" />
+
+        </LinearLayout>
+    </ScrollView>
+
+    <!--
+      解析结果一行。点它进「账目详情页」看底牌（模型给了什么、分类是怎么定的、
+      原始返回长什么样）——这一页已经存在，所以首页不再挂「AI 处理详情」面板。
+      没有地方可去时（解析失败）就不可点。
+    -->
+    <TextView
+        android:id="@+id/parse_result"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:background="?android:attr/selectableItemBackground"
+        android:lineSpacingExtra="3dp"
+        android:padding="12dp"
+        android:textSize="15sp"
+        android:visibility="gone"
+        tools:text="已自动记账" />
+
+    <TextView
+        android:id="@+id/parsing_hint"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:paddingHorizontal="12dp"
+        android:text="@string/home_parsing"
+        android:textSize="13sp"
+        android:visibility="gone" />
+
+    <!-- 输入栏。语音模式下输入框换成「点一下开始说话」，两个控件的权重一致，
+         位置不会跳 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <EditText
+            android:id="@+id/input"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:background="@drawable/bg_input_field"
+            android:hint="@string/home_input_hint"
+            android:imeOptions="actionSend"
+            android:importantForAutofill="no"
+            android:inputType="textCapSentences|textMultiLine"
+            android:maxLines="5"
+            android:minHeight="46dp"
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="12dp"
+            android:textSize="16sp" />
+
+        <TextView
+            android:id="@+id/speak"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:background="@drawable/bg_input_field"
+            android:gravity="center"
+            android:minHeight="46dp"
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="12dp"
+            android:text="@string/home_speak_hint"
+            android:textSize="16sp"
+            android:visibility="gone"
+            tools:visibility="visible" />
+
+        <ImageButton
+            android:id="@+id/btn_voice_mode"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="4dp"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/home_switch_to_voice"
+            android:src="@drawable/ic_mic" />
+
+        <ImageButton
+            android:id="@+id/btn_send"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:layout_marginStart="4dp"
+            android:background="@drawable/bg_send_button"
+            android:contentDescription="@string/home_send"
+            android:padding="10dp"
+            android:src="@drawable/ic_arrow_up" />
+
+    </LinearLayout>
+
+</LinearLayout>

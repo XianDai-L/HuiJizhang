@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+
+    <!--
+      免确认直落的账目（D1 §5.3）：浅色底 + 小标记，便于快速扫检。
+      刻意不用醒目的红色——自动落账是正常功能，不是错误，
+      标记只用来提示"这笔我没问你就记了"，点进去可撤销。
+    -->
+    <color name="auto_posted_background">#FFF3F0FB</color>
+    <color name="auto_posted_badge">#FF6A4FB6</color>
+
+    <!-- 次要信息（时间、商户、占比） -->
+    <color name="muted">#FF6B6B6B</color>
+
+    <!-- 分类选择器的「一级」标签：选中态填充，未选中态描边 -->
+    <color name="category_tab_selected">#FF6A4FB6</color>
+    <color name="category_tab_normal">#00000000</color>
+    <color name="category_tab_stroke">#FFCFCFCF</color>
+
+    <!-- 「AI 处理详情」面板的底：比正文浅一档，一眼看出这是「附注」而不是正文 -->
+    <color name="pane_background">#FFF5F5F7</color>
+
+    <!--
+      底部输入栏。
+      「发送」用与「自动记」标记同一个品牌紫（auto_posted_badge）：整个应用只有这一个强调色，
+      用户不需要重新认识一个颜色。禁用态用中性灰而不是半透明紫——
+      半透明的紫在白底上会显得"淡紫"，看着像可点的样子。
+    -->
+    <color name="composer_field_background">#FFF5F5F7</color>
+    <color name="composer_field_stroke">#FFE0E0E6</color>
+    <color name="composer_send">#FF6A4FB6</color>
+    <color name="composer_send_disabled">#FFCFCFD4</color>
+</resources>

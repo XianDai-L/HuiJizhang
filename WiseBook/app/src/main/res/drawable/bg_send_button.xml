@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  发送按钮的底：圆形。
+  用 shape 而不是把图标做成圆形图片，是为了让"按下变暗"由系统涟漪承担
+  （按钮的 background 带 ripple 时，图标换颜色不必再配一套资源）。
+-->
+<ripple xmlns:android="http://schemas.android.com/apk/res/android"
+    android:color="#33FFFFFF">
+    <item>
+        <shape android:shape="oval">
+            <solid android:color="@color/composer_send" />
+        </shape>
+    </item>
+</ripple>

@@ -1,0 +1,34 @@
+# ============ 敏感：绝不提交 ============
+# local.properties 里有 DeepSeek / 硅基流动的 API Key
+local.properties
+WiseBook/local.properties
+# 打出来的 APK 里编着编译期注入的 Key（HANDOFF §1）
+*.apk
+*.aab
+*.jks
+*.keystore
+
+# ============ 隐私：含真实支付记录的实验材料 ============
+p2-experiment/samples/
+p2-experiment/results/
+
+# ============ 构建产物 ============
+.gradle/
+build/
+**/build/
+captures/
+.cxx/
+*.hprof
+
+# ============ IDE / 编辑器 ============
+.idea/
+*.iml
+.vscode/
+.settings/
+.classpath
+.project
+
+# ============ 系统 ============
+Thumbs.db
+.DS_Store
+desktop.ini
