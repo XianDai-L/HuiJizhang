@@ -14,7 +14,8 @@ import java.util.List;
  * <p>校验规则直接来自 {@link ToolSchema#parameters()} —— <b>发给模型的约束和校验返回值的依据是同一份
  * JSON Schema</b>，避免「提示词一套、代码一套」的两处不一致。
  *
- * <p>只实现记账场景需要的子集：{@code required} / {@code type} / {@code enum}。
+ * <p>只实现记账场景需要的子集：{@code required} / {@code type} / {@code enum}，
+ * 以及对象数组的逐项递归校验（{@code items.type == "object"}，P2「一图多笔」用）。
  * 不引入完整的 JSON Schema 引擎——那会带来远超需求的复杂度。
  *
  * <p>未在 schema 中声明的额外字段会被<b>忽略</b>，不视为错误：重试一次的代价高于收益。
@@ -57,8 +58,42 @@ public final class JsonPayloadValidator {
             }
             checkEnum(field, definition, value, issues);
             checkType(field, definition, value, issues);
+            checkObjectArrayItems(field, definition, value, issues);
         }
         return issues;
+    }
+
+    /**
+     * 对象数组的逐项校验（P2「一图多笔」用）。
+     *
+     * <p>只在 {@code items.type == "object"} 时递归：{@code stringArray} 那类
+     * 「元素是标量」的数组不走这里，否则会把合法的字符串元素误报成"不是 JSON 对象"。
+     *
+     * <p>问题描述里带上序号（{@code drafts[2]：…}），是为了让修正型重试能指出改哪一项；
+     * 只说"某一项缺字段"的话，模型只能整批重猜。
+     */
+    private static void checkObjectArrayItems(String field, JsonObject definition, JsonElement value,
+                                              List<String> issues) {
+        JsonElement items = definition.get("items");
+        if (items == null || !items.isJsonObject() || !value.isJsonArray()) {
+            return;
+        }
+        JsonObject itemSchema = items.getAsJsonObject();
+        JsonElement itemType = itemSchema.get("type");
+        if (itemType == null || itemType.isJsonNull() || !"object".equals(itemType.getAsString())) {
+            return;
+        }
+        JsonArray array = value.getAsJsonArray();
+        for (int index = 0; index < array.size(); index++) {
+            JsonElement element = array.get(index);
+            if (!element.isJsonObject()) {
+                issues.add("字段 " + field + " 第 " + (index + 1) + " 项不是 JSON 对象：" + element);
+                continue;
+            }
+            for (String issue : validate(itemSchema, element.getAsJsonObject())) {
+                issues.add(field + "[" + (index + 1) + "]：" + issue);
+            }
+        }
     }
 
     private static void checkRequired(JsonObject schema, JsonObject payload, List<String> issues) {

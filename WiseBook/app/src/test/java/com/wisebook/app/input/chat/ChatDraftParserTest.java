@@ -17,6 +17,8 @@ import com.wisebook.app.domain.model.DraftStatus;
 import com.wisebook.app.domain.model.EvidenceType;
 import com.wisebook.app.domain.model.OccurredAtSource;
 import com.wisebook.app.domain.model.PaymentMethod;
+import com.wisebook.app.input.DraftParseResult;
+import com.wisebook.app.input.FakeLlmClient;
 import com.wisebook.llm.LlmException;
 
 import org.junit.Test;

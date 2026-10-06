@@ -22,6 +22,7 @@
     <string name="home_voice_permission_denied">没有麦克风权限，没法用语音。到系统设置里给「慧记」开一下</string>
     <string name="home_voice_failed">没听清，再说一次试试</string>
     <string name="home_result_open_hint">点这行看这笔账</string>
+    <string name="home_pick_image">从相册选一张账单截图</string>
 
     <!-- 设置 -->
     <string name="settings_title">设置</string>

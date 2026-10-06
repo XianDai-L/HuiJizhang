@@ -1,4 +1,4 @@
-package com.wisebook.app.input.chat;
+package com.wisebook.app.input;
 
 import com.wisebook.app.data.local.entity.CategoryEntity;
 import com.wisebook.app.domain.classify.CategoryTree;
@@ -24,12 +24,22 @@ import java.util.List;
  * 理由是草稿的本质就是「还没凑齐的一笔账」：强行必填会让「没提到金额」这种
  * 最常见的情况直接判为校验失败、白白走一遍重试再降级。
  * 「必填」这件事交给 {@code ConfirmPolicy} 去判——它知道档位，也知道缺哪个字段该问什么。
+ *
+ * <p><b>为什么它从 {@code input.chat} 搬到了 {@code input}</b>（P2）：它描述的是
+ * 「一笔账目」的字段契约，与入口无关。截图入口要产出的是同一批字段，
+ * 所以必须共用这一份——否则「单笔一套、截图另一套」会立刻分叉（见 {@link #buildBatch}）。
  */
 public final class DraftToolSchema {
 
     public static final String TOOL_NAME = "create_draft";
 
-    // 字段名常量：解析端（ChatDraftParser）与这里共用一份，避免字符串两边各写一遍
+    /** 一图多笔用的工具名：外层是数组，元素仍是同一份单笔字段定义 */
+    public static final String BATCH_TOOL_NAME = "create_draft_batch";
+
+    /** 批量输出里装账目的字段名 */
+    public static final String FIELD_DRAFTS = "drafts";
+
+    // 字段名常量：解析端（DraftAssembler）与这里共用一份，避免字符串两边各写一遍
     public static final String FIELD_DIRECTION = "direction";
     public static final String FIELD_AMOUNT_CENTS = "amountCents";
     public static final String FIELD_AMOUNT_RAW = "amountRaw";
@@ -100,6 +110,25 @@ public final class DraftToolSchema {
                 .integer(FIELD_TRANSACTION_COUNT,
                         "这句话里实际包含几笔账。只有一笔时填 1",
                         ToolSchema.Requirement.OPTIONAL)
+                .build();
+    }
+
+    /**
+     * 「一图多笔」的工具定义（P2）：外层一个数组，<b>元素就是 {@link #build} 那份单笔 schema</b>。
+     *
+     * <p>单独做一个工具而不是把单笔也改成数组，是因为文字入口的语义就是"一句话一笔"
+     * （多笔时只报 {@code transactionCount}，决策 14）。让两个入口各用各的工具，
+     * 好处是各自的重试反馈都精确到自己的形状；而元素字段共用一份定义，
+     * 又保证了两边不会在字段上分叉。
+     */
+    public static ToolSchema buildBatch(CategoryTree tree, CategoryScheme scheme) {
+        return ToolSchema.builder(BATCH_TOOL_NAME)
+                .description("把一张账单截图（或一段含多笔的文字）拆成多笔结构化账目草稿")
+                .objectArray(FIELD_DRAFTS,
+                        "账目草稿数组：每一笔一个元素，按图中从上到下的顺序排列。"
+                                + "只有一笔时数组里也放一个元素",
+                        ToolSchema.Requirement.REQUIRED,
+                        build(tree, scheme))
                 .build();
     }
 

@@ -1,4 +1,4 @@
-package com.wisebook.app.input.chat;
+package com.wisebook.app.input;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -114,6 +114,30 @@ public class DraftToolSchemaTest {
 
         assertFalse("不该给出 enum", categoryPath.has("enum"));
         assertEquals("string", categoryPath.get("type").getAsString());
+    }
+
+    // ------------------------------------------------------------ 一图多笔（P2）
+
+    @Test
+    public void batchSchemaWrapsTheSingleDraftSchema() {
+        ToolSchema batch = DraftToolSchema.buildBatch(TestFixtures.tree(), CategoryScheme.STANDARD);
+        JsonObject parameters = batch.parameters();
+
+        assertEquals(DraftToolSchema.BATCH_TOOL_NAME, batch.name());
+        assertEquals("drafts 是必填", 1, parameters.getAsJsonArray("required").size());
+        assertEquals(DraftToolSchema.FIELD_DRAFTS,
+                parameters.getAsJsonArray("required").get(0).getAsString());
+
+        JsonObject drafts = parameters.getAsJsonObject("properties")
+                .getAsJsonObject(DraftToolSchema.FIELD_DRAFTS);
+        assertEquals("array", drafts.get("type").getAsString());
+
+        JsonObject item = drafts.getAsJsonObject("items");
+        assertEquals("object", item.get("type").getAsString());
+        // 元素沿用单笔那份定义：字段一个不少，分类枚举也是同一份
+        assertTrue(item.getAsJsonObject("properties").has(DraftToolSchema.FIELD_DIRECTION));
+        assertTrue(item.getAsJsonObject("properties").has(DraftToolSchema.FIELD_MERCHANT));
+        assertEquals(1, item.getAsJsonArray("required").size());
     }
 
     private static List<String> stringList(JsonArray array) {

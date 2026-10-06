@@ -14,6 +14,7 @@ import com.wisebook.app.data.local.seed.CategorySeeder;
 import com.wisebook.app.data.remote.LlmClientFactory;
 import com.wisebook.app.data.remote.LlmConfigStore;
 import com.wisebook.app.data.remote.LlmRuntime;
+import com.wisebook.llm.ImageReader;
 import com.wisebook.llm.LlmClient;
 
 import java.util.concurrent.ExecutorService;
@@ -53,6 +54,16 @@ public class WiseBookApp extends Application {
      * {@link #invalidateLlmClient()} 置空，下次用到时重建。
      */
     private volatile LlmClient llmClient;
+
+    /**
+     * 截图转写器缓存（图 → 文字）。
+     *
+     * <p>与 {@link #llmClient} 分开缓存，是因为它用的是<b>另一家</b>的端点：
+     * 转写固定走硅基流动的 OCR 模型，而结构化那一步跟着用户选的「当前服务商」走
+     * ——两者是两条独立的链路（路线 B 的架构主张）。
+     * 配了硅基流动 Key 之后这里才会被填上，否则一直是 {@code null}。
+     */
+    private volatile ImageReader imageReader;
 
     @Override
     public void onCreate() {
@@ -132,6 +143,7 @@ public class WiseBookApp extends Application {
     /** 设置页改完配置后调用：把缓存的客户端丢掉，下次用到时按新配置重建 */
     public void invalidateLlmClient() {
         llmClient = null;
+        imageReader = null;
     }
 
     // ------------------------------------------------------------------ 内部
@@ -164,6 +176,26 @@ public class WiseBookApp extends Application {
                 // 就是这次实际使用的端点与模型，而不是另算一遍
                 return LlmClientFactory.modelConfig(llmConfigStore.provider(),
                         llmConfigStore.model(), llmConfigStore.apiKey()).label();
+            }
+
+            @Override
+            public ImageReader imageReader() {
+                ImageReader cached = imageReader;
+                if (cached == null) {
+                    synchronized (WiseBookApp.this) {
+                        cached = imageReader;
+                        if (cached == null) {
+                            cached = LlmClientFactory.createImageReader(llmConfigStore);
+                            imageReader = cached;
+                        }
+                    }
+                }
+                return cached;
+            }
+
+            @Override
+            public boolean isImageReady() {
+                return llmConfigStore.hasImageKey();
             }
         };
     }

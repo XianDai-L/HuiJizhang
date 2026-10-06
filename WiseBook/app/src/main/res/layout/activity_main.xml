@@ -136,6 +136,21 @@
         android:gravity="center_vertical"
         android:orientation="horizontal">
 
+        <!--
+          截图入口。放在输入框左侧而不是塞进右侧那串按钮里：
+          右侧是「发送/语音」，都是"这一句怎么发出去"；而相机是另一种输入来源，
+          和输入框是一类的（D2 §7 拟的「输入栏左侧加个相机图标」）。
+          选图走系统照片选择器，因此这里不需要声明任何权限。
+        -->
+        <ImageButton
+            android:id="@+id/btn_pick_image"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginEnd="4dp"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/home_pick_image"
+            android:src="@drawable/ic_camera" />
+
         <EditText
             android:id="@+id/input"
             android:layout_width="0dp"

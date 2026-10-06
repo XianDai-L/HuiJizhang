@@ -44,31 +44,39 @@ public class ChatViewModel extends ViewModel {
         public final long draftId;
         /** 已经写进账本的那笔账目 id；没有则为 -1 */
         public final long entryId;
+        /** 一图多笔且还有要核对的 → 点结果行去「待处理」看整批 */
+        public final boolean openPendingList;
 
         private UiState(boolean parsing, String summary, String detail, boolean error,
-                        long draftId, long entryId) {
+                        long draftId, long entryId, boolean openPendingList) {
             this.parsing = parsing;
             this.summary = summary;
             this.detail = detail;
             this.error = error;
             this.draftId = draftId;
             this.entryId = entryId;
+            this.openPendingList = openPendingList;
         }
 
         static UiState idle() {
-            return new UiState(false, null, null, false, -1L, -1L);
+            return new UiState(false, null, null, false, -1L, -1L, false);
         }
 
         static UiState parsing() {
-            return new UiState(true, null, null, false, -1L, -1L);
+            return new UiState(true, null, null, false, -1L, -1L, false);
         }
 
         static UiState result(String summary, String detail, long draftId, long entryId) {
-            return new UiState(false, summary, detail, false, draftId, entryId);
+            return new UiState(false, summary, detail, false, draftId, entryId, false);
+        }
+
+        static UiState result(String summary, String detail, long draftId, long entryId,
+                              boolean openPendingList) {
+            return new UiState(false, summary, detail, false, draftId, entryId, openPendingList);
         }
 
         static UiState error(String message) {
-            return new UiState(false, message, null, true, -1L, -1L);
+            return new UiState(false, message, null, true, -1L, -1L, false);
         }
 
         public boolean hasResult() {
@@ -79,11 +87,12 @@ public class ChatViewModel extends ViewModel {
          * 这一行结果点得动吗。
          *
          * <p>点得动的前提是<b>真有地方可去</b>：自动落账的进「账目详情页」，
-         * 需要核对的进「确认页」，而"没配 Key"或"解析失败"两种错误状态哪儿也去不了
+         * 需要核对的进「确认页」，一图多笔的进「待处理」看整批；
+         * 而"没配 Key"或"解析失败"两种错误状态哪儿也去不了
          * ——那时这一行只该是一条提示，不该看起来像能点。
          */
         public boolean canOpen() {
-            return entryId > 0L || draftId > 0L;
+            return entryId > 0L || draftId > 0L || openPendingList;
         }
     }
 
@@ -124,6 +133,33 @@ public class ChatViewModel extends ViewModel {
         });
     }
 
+    /**
+     * 提交一张截图。可能读出好几笔（P2「一图多笔」）。
+     *
+     * <p>与 {@link #submit} 的区别只有两处：入口条件换成"有没有 OCR 能力"，
+     * 以及结果是批量的。解析、落库、档位判定全在仓储层里，与文字入口共用同一套。
+     */
+    public void submitImage(byte[] imageBytes, String mimeType, String displayName) {
+        if (imageBytes == null || imageBytes.length == 0) {
+            state.setValue(UiState.error("没读到图片内容，再选一次试试"));
+            return;
+        }
+        // 文字入口只要有任意一家的 Key 就能用；截图入口要的是硅基流动的 Key
+        // （OCR 模型挂在它下面），所以这里问的是 isImageReady——
+        // 报错也就能报到点子上，而不是笼统一句"没有可用的 Key"
+        if (!llmRuntime.isImageReady()) {
+            state.setValue(UiState.error(
+                    "截图记账要用硅基流动的 OCR 模型。到「设置」里填一个硅基流动的 Key 再试"));
+            return;
+        }
+        state.setValue(UiState.parsing());
+        executor.execute(() -> {
+            DraftRepository.ImageSubmitReport report =
+                    draftRepository.submitImage(imageBytes, mimeType, displayName);
+            state.postValue(toState(report));
+        });
+    }
+
     private static UiState toState(DraftRepository.SubmitReport report) {
         StringBuilder detail = new StringBuilder();
         if (report.detail != null && !report.detail.isEmpty()) {
@@ -141,6 +177,24 @@ public class ChatViewModel extends ViewModel {
 
         return UiState.result(report.summary, detail.toString(),
                 report.outcome.draftId, report.outcome.entryId);
+    }
+
+    private static UiState toState(DraftRepository.ImageSubmitReport report) {
+        if (!report.isOk()) {
+            return UiState.error(report.summary());
+        }
+        StringBuilder detail = new StringBuilder();
+        if (report.detail() != null && !report.detail().isEmpty()) {
+            detail.append(report.detail()).append('\n');
+        }
+        // 与文字入口一致，把调用次数亮出来。截图这条路是"转写 1 次 + 拆笔 N 次"：
+        // 看到"拆笔 2 次"就知道模型第一次没给出合法数组、是修正型重试救回来的
+        int attempts = report.reports.isEmpty() ? 0 : report.reports.get(0).attemptCount;
+        detail.append("转写 1 次，拆笔 ").append(attempts).append(" 次");
+
+        return UiState.result(report.summary(), detail.toString(),
+                report.primaryDraftId(), report.primaryEntryId(),
+                report.shouldOpenPendingList());
     }
 
     /** 手动构造依赖的 ViewModel 工厂（P1 不用依赖注入框架，D2 §1） */

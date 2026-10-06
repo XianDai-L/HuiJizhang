@@ -96,4 +96,66 @@ public class JsonPayloadValidatorTest {
         List<String> issues = validate("{\"direction\":\"unknown\"}");
         assertEquals("issueCount", 2, issues.size());
     }
+
+    // -------------------------------------------------- 对象数组（P2 一图多笔）
+
+    private static final ToolSchema BATCH = ToolSchema.builder("create_draft_batch")
+            .objectArray("drafts", "账目数组", ToolSchema.Requirement.REQUIRED, TOOL)
+            .build();
+
+    private static List<String> validateBatch(String payload) {
+        return JsonPayloadValidator.validate(BATCH.parameters(), json(payload));
+    }
+
+    @Test
+    public void acceptsValidBatch() {
+        assertTrue(validateBatch(
+                "{\"drafts\":[{\"amountCents\":700,\"direction\":\"expense\"},"
+                        + "{\"amountCents\":1500,\"direction\":\"income\"}]}").isEmpty());
+    }
+
+    @Test
+    public void reportsMissingBatchField() {
+        List<String> issues = validateBatch("{}");
+        assertEquals("issueCount", 1, issues.size());
+        assertTrue(issues.get(0).contains("drafts"));
+    }
+
+    /** 元素的问题要带序号：修正型重试时模型才知道改哪一项，否则只能整批重猜 */
+    @Test
+    public void reportsItemIssueWithIndex() {
+        List<String> issues = validateBatch(
+                "{\"drafts\":[{\"amountCents\":700,\"direction\":\"expense\"},"
+                        + "{\"direction\":\"expense\"}]}");
+        assertEquals("issueCount", 1, issues.size());
+        assertTrue(issues.get(0).contains("drafts[2]"));
+        assertTrue(issues.get(0).contains("amountCents"));
+    }
+
+    @Test
+    public void reportsItemEnumViolation() {
+        List<String> issues = validateBatch(
+                "{\"drafts\":[{\"amountCents\":700,\"direction\":\"transfer\"}]}");
+        assertEquals("issueCount", 1, issues.size());
+        assertTrue(issues.get(0).contains("drafts[1]"));
+    }
+
+    /** 元素不是对象时要报出来，而不是静默放过一个坏元素 */
+    @Test
+    public void reportsNonObjectItem() {
+        List<String> issues = validateBatch("{\"drafts\":[\"记账\"]}");
+        assertEquals("issueCount", 1, issues.size());
+        assertTrue(issues.get(0).contains("不是 JSON 对象"));
+    }
+
+    /** 标量数组（stringArray）不能被对象数组的规则误伤 */
+    @Test
+    public void scalarArrayIsNotTreatedAsObjectArray() {
+        ToolSchema schema = ToolSchema.builder("t")
+                .stringArray("items", "明细", ToolSchema.Requirement.OPTIONAL)
+                .objectArray("drafts", "账目", ToolSchema.Requirement.OPTIONAL, TOOL)
+                .build();
+        assertTrue(JsonPayloadValidator.validate(schema.parameters(),
+                json("{\"items\":[\"咖啡\",\"蛋糕\"]}")).isEmpty());
+    }
 }

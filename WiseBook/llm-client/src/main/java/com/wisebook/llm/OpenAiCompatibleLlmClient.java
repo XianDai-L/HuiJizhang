@@ -23,7 +23,6 @@ import java.util.concurrent.TimeUnit;
 public final class OpenAiCompatibleLlmClient implements LlmClient {
 
     private static final MediaType JSON = MediaType.get("application/json; charset=utf-8");
-    private static final int SNIPPET_LIMIT = 300;
 
     private final LlmModelConfig config;
     private final OkHttpClient http;
@@ -65,7 +64,8 @@ public final class OpenAiCompatibleLlmClient implements LlmClient {
         }
 
         if (code < 200 || code >= 300) {
-            throw new LlmException(classify(code), code, "HTTP " + code + "：" + snippet(body));
+            throw new LlmException(LlmHttp.classify(code), code,
+                    "HTTP " + code + "：" + LlmHttp.snippet(body));
         }
         return parse(body);
     }
@@ -114,25 +114,25 @@ public final class OpenAiCompatibleLlmClient implements LlmClient {
             root = JsonParser.parseString(body);
         } catch (RuntimeException e) {
             throw new LlmException(LlmException.ErrorKind.BAD_RESPONSE, 200,
-                    "响应不是合法 JSON：" + snippet(body), e);
+                    "响应不是合法 JSON：" + LlmHttp.snippet(body), e);
         }
         if (!root.isJsonObject()) {
             throw new LlmException(LlmException.ErrorKind.BAD_RESPONSE, 200,
-                    "响应顶层不是 JSON 对象：" + snippet(body));
+                    "响应顶层不是 JSON 对象：" + LlmHttp.snippet(body));
         }
 
         JsonObject rootObject = root.getAsJsonObject();
         JsonArray choices = rootObject.getAsJsonArray("choices");
         if (choices == null || choices.isEmpty()) {
             throw new LlmException(LlmException.ErrorKind.BAD_RESPONSE, 200,
-                    "响应缺少 choices：" + snippet(body));
+                    "响应缺少 choices：" + LlmHttp.snippet(body));
         }
 
         JsonObject choice = choices.get(0).getAsJsonObject();
         JsonObject message = choice.getAsJsonObject("message");
         if (message == null) {
             throw new LlmException(LlmException.ErrorKind.BAD_RESPONSE, 200,
-                    "响应缺少 message：" + snippet(body));
+                    "响应缺少 message：" + LlmHttp.snippet(body));
         }
 
         String model = optString(rootObject, "model");
@@ -158,23 +158,6 @@ public final class OpenAiCompatibleLlmClient implements LlmClient {
         return element.isJsonPrimitive() ? element.getAsString() : element.toString();
     }
 
-    private static LlmException.ErrorKind classify(int code) {
-        if (code == 401 || code == 403) {
-            return LlmException.ErrorKind.AUTH;
-        }
-        if (code == 429) {
-            return LlmException.ErrorKind.RATE_LIMIT;
-        }
-        if (code >= 500) {
-            return LlmException.ErrorKind.SERVER;
-        }
-        return LlmException.ErrorKind.BAD_RESPONSE;
-    }
-
-    private static String snippet(String text) {
-        if (text == null) {
-            return "";
-        }
-        return text.length() <= SNIPPET_LIMIT ? text : text.substring(0, SNIPPET_LIMIT) + "…";
-    }
+    // HTTP 状态码归类与错误体截断搬去了 LlmHttp：
+    // 截图入口的 ImageReader 要用同一套判断，两个类各留一份迟早在提示文案上分叉
 }

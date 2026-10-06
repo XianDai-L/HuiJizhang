@@ -1,5 +1,6 @@
 package com.wisebook.app.data.remote;
 
+import com.wisebook.llm.ImageReader;
 import com.wisebook.llm.LlmClient;
 
 /**
@@ -32,4 +33,24 @@ public interface LlmRuntime {
      * D2 §6.2 的多模型对比实验就靠它区分数据来源。
      */
     String modelLabel();
+
+    /**
+     * 把图片读成文字的能力（截图入口的第一步）。
+     *
+     * <p>装在这里而不是让界面自己造，理由与 {@link #client()} 相同：客户端缓存、
+     * Key 从哪取、用哪个模型，都该只有一个出处。
+     *
+     * @return 当前配置下没有可用的转写链路时返回 {@code null}
+     */
+    ImageReader imageReader();
+
+    /**
+     * 截图入口是否可用。
+     *
+     * <p>与 {@link #isReady()} <b>刻意分开</b>：文字入口只要有任意一家的 Key 就能用，
+     * 而截图第一步的 OCR 模型只挂在硅基流动下。只有 DeepSeek Key 的设备应该看到
+     * 「截图记账需要硅基流动的 Key」，而不是一句笼统的"没配 Key"——
+     * 后者会让人以为是网络或应用坏了。
+     */
+    boolean isImageReady();
 }

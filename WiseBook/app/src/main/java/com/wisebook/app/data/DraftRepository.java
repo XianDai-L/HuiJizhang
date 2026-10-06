@@ -13,11 +13,16 @@ import com.wisebook.app.domain.draft.DedupeKey;
 import com.wisebook.app.domain.draft.DraftStateMachine;
 import com.wisebook.app.domain.draft.DraftTransition;
 import com.wisebook.app.domain.model.DraftStatus;
+import com.wisebook.app.input.DraftParseResult;
 import com.wisebook.app.input.chat.ChatDraftParser;
-import com.wisebook.app.input.chat.DraftParseResult;
+import com.wisebook.app.input.image.ImageDraftParser;
+import com.wisebook.app.input.image.ImageInput;
+import com.wisebook.llm.ImageReader;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Callable;
 
@@ -176,6 +181,184 @@ public final class DraftRepository {
 
         return persist(parsed.firstDraft(), settings, tree,
                 parsed.attemptCount(), parsed.firstAttemptSucceeded(), parsed.rawPayload());
+    }
+
+    // ------------------------------------------------------------------ 截图提交
+
+    /**
+     * 一次截图提交的结果：一图多笔就是<b>多条</b> {@link SubmitReport}。
+     *
+     * <p>刻意不做"批量专用规则"：每一笔都单独走一遍 {@code persist}
+     * （去重、档位、免确认直落全都一样），所以这个类只负责把结果收拢起来给界面看。
+     */
+    public static final class ImageSubmitReport {
+
+        /** 逐笔的结果，顺序与图里从上到下一致 */
+        public final List<SubmitReport> reports;
+        /** 连转写都没成功时的原因；成功时为 {@code null} */
+        public final String failure;
+
+        private ImageSubmitReport(List<SubmitReport> reports, String failure) {
+            this.reports = Collections.unmodifiableList(new ArrayList<>(reports));
+            this.failure = failure;
+        }
+
+        static ImageSubmitReport failed(String reason) {
+            return new ImageSubmitReport(Collections.<SubmitReport>emptyList(), reason);
+        }
+
+        static ImageSubmitReport of(List<SubmitReport> reports) {
+            return new ImageSubmitReport(reports, null);
+        }
+
+        public boolean isOk() {
+            return failure == null;
+        }
+
+        public int draftCount() {
+            return reports.size();
+        }
+
+        /** 已经写进账本的笔数 */
+        public int autoPostedCount() {
+            int count = 0;
+            for (SubmitReport report : reports) {
+                if (report.outcome.kind == SubmitOutcome.Kind.AUTO_POSTED) {
+                    count++;
+                }
+            }
+            return count;
+        }
+
+        /** 还等用户核对的笔数 */
+        public int needsConfirmCount() {
+            int count = 0;
+            for (SubmitReport report : reports) {
+                if (report.outcome.kind == SubmitOutcome.Kind.NEEDS_CONFIRM) {
+                    count++;
+                }
+            }
+            return count;
+        }
+
+        /**
+         * 汇总成一句话。单笔时沿用文字入口的说法（用户的体验应当是连续的），
+         * 多笔时把「几笔入账、几笔待核对」讲清楚——<b>这张图被读出了几笔</b>本身
+         * 就是用户最想确认的事：模型既可能漏读，也可能把一笔读成两笔。
+         */
+        public String summary() {
+            if (!isOk()) {
+                return failure;
+            }
+            if (reports.size() == 1) {
+                return reports.get(0).summary;
+            }
+            int posted = autoPostedCount();
+            int pending = needsConfirmCount();
+            int degraded = reports.size() - posted - pending;
+
+            StringBuilder text = new StringBuilder("这张图有 ").append(reports.size()).append(" 笔：");
+            if (posted > 0) {
+                text.append("已自动记账 ").append(posted).append(" 笔");
+            }
+            if (posted > 0 && pending > 0) {
+                text.append("，");
+            }
+            if (pending > 0) {
+                text.append("待核对 ").append(pending).append(" 笔");
+            }
+            if (degraded > 0) {
+                if (posted > 0 || pending > 0) {
+                    text.append("，");
+                }
+                text.append("有 ").append(degraded).append(" 笔没解析出来");
+            }
+            return text.toString();
+        }
+
+        /** 汇总说明；单笔时沿用原始 detail */
+        public String detail() {
+            if (!isOk()) {
+                return null;
+            }
+            if (reports.size() == 1) {
+                return reports.get(0).detail;
+            }
+            StringBuilder text = new StringBuilder();
+            for (int i = 0; i < reports.size(); i++) {
+                SubmitReport report = reports.get(i);
+                text.append(i + 1).append(". ").append(report.summary);
+                if (report.detail != null && !report.detail.isEmpty()) {
+                    text.append("——").append(report.detail);
+                }
+                if (i < reports.size() - 1) {
+                    text.append('\n');
+                }
+            }
+            return text.toString();
+        }
+
+        /**
+         * 结果行的落点。
+         *
+         * <p>单笔时与文字入口一模一样（那一笔的确认页或账目详情页）；
+         * 多笔时给 -1，由界面改去「待处理」列表把整批看完——
+         * 「点一下却只看得到其中一笔」最容易让人以为剩下的被漏记了。
+         */
+        public long primaryDraftId() {
+            return reports.size() == 1 ? reports.get(0).outcome.draftId : -1L;
+        }
+
+        public long primaryEntryId() {
+            return reports.size() == 1 ? reports.get(0).outcome.entryId : -1L;
+        }
+
+        /** 多笔且有需要核对的部分 → 界面应把用户送去待处理列表 */
+        public boolean shouldOpenPendingList() {
+            return reports.size() > 1 && needsConfirmCount() > 0;
+        }
+    }
+
+    /**
+     * 提交一张截图：转写 → 拆笔 → 逐笔判定与落库。<b>阻塞方法，禁止在主线程调用。</b>
+     *
+     * <p>一图多笔在这里就是"连着提交好几笔"：每笔独立走去重与档位判定，
+     * 彼此<b>不共享状态</b>（D1 §4.2），只共享一个 {@code batch_id} 标签。
+     * 这样"一批里有一笔没解析出来"不会连累其它笔。
+     */
+    public ImageSubmitReport submitImage(byte[] imageBytes, String mimeType, String displayName) {
+        return submitImage(imageBytes, mimeType, displayName, LocalDateTime.now(zone));
+    }
+
+    /** @param now 「现在」，相对时间的参照点；也是批次标签的来源 */
+    public ImageSubmitReport submitImage(byte[] imageBytes, String mimeType, String displayName,
+                                        LocalDateTime now) {
+        ImageReader imageReader = llmRuntime.imageReader();
+        if (imageReader == null) {
+            // 没有 OCR 链路时不去白跑一次网络：直接说清缺哪一家的 Key
+            return ImageSubmitReport.failed(
+                    "截图记账要用硅基流动的 OCR 模型。到「设置」里填一个硅基流动的 Key 再试");
+        }
+
+        long userId = WiseBookDatabase.DEFAULT_USER_ID;
+        SettingEntity settings = settingsRepository.loadOrInit(userId);
+        CategoryTree tree = categoryRepository.loadTree(userId);
+
+        ImageDraftParser parser = new ImageDraftParser(imageReader, llmRuntime.client(),
+                llmRuntime.modelLabel(), tree, settings.categoryScheme, userId, zone);
+
+        DraftParseResult parsed = parser.parse(
+                new ImageInput(imageBytes, mimeType, displayName), now);
+        if (!parsed.isOk()) {
+            return ImageSubmitReport.failed(parsed.message());
+        }
+
+        List<SubmitReport> reports = new ArrayList<>();
+        for (DraftEntity draft : parsed.drafts()) {
+            reports.add(persist(draft, settings, tree, parsed.attemptCount(),
+                    parsed.firstAttemptSucceeded(), parsed.rawPayload()));
+        }
+        return ImageSubmitReport.of(reports);
     }
 
     /**

@@ -1,4 +1,4 @@
-package com.wisebook.app.input.chat;
+package com.wisebook.app.input;
 
 /**
  * 账目草稿解析用的 System Prompt。
@@ -14,6 +14,10 @@ package com.wisebook.app.input.chat;
  *   <li><b>时间只抄原文、不换算。</b>日期算术是模型很容易算错又不自知的地方，
  *       换算交给 {@code RelativeTimeResolver} 用 {@code java.time} 做，结果可复现、可单测。</li>
  * </ul>
+ *
+ * <p><b>为什么它从 {@code input.chat} 搬到了 {@code input}</b>（P2）：这段约束描述的是
+ * 「账目」长什么样，与入口无关。截图入口走的是同一条文本管线，用的就是这一份；
+ * 差异只在"输入从哪来"，那部分由各入口自己叠加（见 {@code input.image.ImageDraftPrompt}）。
  */
 public final class DraftPrompt {
 

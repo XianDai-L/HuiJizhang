@@ -89,6 +89,29 @@ public final class LlmConfigStore {
     }
 
     /**
+     * 指定服务商的 Key（运行时覆盖优先，其次编译期默认）。
+     *
+     * <p>截图入口要用它：转写那一步固定走硅基流动的 OCR 模型，
+     * 而用户当前的"文字入口服务商"可能是 DeepSeek——两件事不该互相牵制。
+     *
+     * <p><b>覆盖值只在它属于该服务商时才算数</b>：{@code apiKeyOverride} 是单槽位，
+     * 存的是"当前服务商"的 Key。若用户把服务商设成 DeepSeek 又填了一个 Key，
+     * 那个 Key 是给 DeepSeek 的，不能拿去请求硅基流动——那会得到一个 401，
+     * 而用户完全看不出来自己哪里配错了。
+     */
+    public String apiKeyFor(LlmProvider target) {
+        if (target == provider()) {
+            return apiKey();
+        }
+        return buildConfigKey(target);
+    }
+
+    /** 截图入口的转写条件：必须有硅基流动的 Key（OCR 模型挂在它下面） */
+    public boolean hasImageKey() {
+        return !apiKeyFor(LlmProvider.SILICONFLOW).trim().isEmpty();
+    }
+
+    /**
      * 仅运行时覆盖的 Key，<b>不含</b>编译期默认值；没设置过返回 {@code null}。
      *
      * <p>设置页要的是这个而不是 {@link #apiKey()}：预填时必须区分

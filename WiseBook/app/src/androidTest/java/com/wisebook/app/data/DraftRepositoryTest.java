@@ -27,7 +27,9 @@ import com.wisebook.app.domain.model.DraftStatus;
 import com.wisebook.app.domain.model.EvidenceType;
 import com.wisebook.app.domain.model.OccurredAtSource;
 import com.wisebook.app.domain.model.PaymentMethod;
+import com.wisebook.llm.ImageReader;
 import com.wisebook.llm.LlmClient;
+import com.wisebook.llm.LlmRawResponse;
 
 import org.junit.After;
 import org.junit.Before;
@@ -35,6 +37,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 草稿编排层：判定 → 落库 → 落账（D1 §4 / §5.2 / §7）。
@@ -434,6 +437,95 @@ public class DraftRepositoryTest {
             public String modelLabel() {
                 return "test:stub";
             }
+
+            @Override
+            public ImageReader imageReader() {
+                // 这个替身没有转写能力：persist 路径不会走到它，
+                // 而 submitImage 用它来判断"当前配置能不能截图记账"（返回 null = 不能）
+                return null;
+            }
+
+            @Override
+            public boolean isImageReady() {
+                return false;
+            }
         };
+    }
+
+    /**
+     * 截图提交用的运行时：转写返回预设文本、拆笔返回预设 JSON，都不碰网络。
+     *
+     * <p>有了它，「一图多笔」这条链路就能在真库上被验——走的是与线上完全相同的
+     * {@code ImageDraftParser} → {@code DraftAssembler} → {@code persist}。
+     */
+    private static LlmRuntime imageRuntime(String transcript, String batchPayload) {
+        return new LlmRuntime() {
+            @Override
+            public LlmClient client() {
+                return (systemPrompt, userContent, tool) ->
+                        new LlmRawResponse("test:fake", batchPayload, null, "{\"raw\":\"stub\"}");
+            }
+
+            @Override
+            public boolean isReady() {
+                return true;
+            }
+
+            @Override
+            public String modelLabel() {
+                return "test:fake";
+            }
+
+            @Override
+            public ImageReader imageReader() {
+                return (imageBytes, mimeType, instruction) -> transcript;
+            }
+
+            @Override
+            public boolean isImageReady() {
+                return true;
+            }
+        };
+    }
+
+    // ------------------------------------------------------ 截图入口（一图多笔）
+
+    @Test
+    public void submitImageCreatesOneDraftPerTransaction() {
+        String transcript = "微信支付\n收款方甲\n￥7.00\n收款方乙\n￥15.00";
+        String payload = "{\"drafts\":["
+                + "{\"direction\":\"expense\",\"amountCents\":700,\"merchant\":\"收款方甲\"},"
+                + "{\"direction\":\"expense\",\"amountCents\":1500,\"merchant\":\"收款方乙\"}]}";
+        DraftRepository repository = new DraftRepository(db, settingsRepository,
+                categoryRepository, entryRepository, imageRuntime(transcript, payload));
+
+        DraftRepository.ImageSubmitReport report = repository.submitImage(
+                new byte[]{1, 2, 3}, "image/jpeg", "相册截图");
+
+        assertTrue(report.isOk());
+        assertEquals("一笔一张草稿", 2, report.draftCount());
+
+        List<DraftEntity> drafts = db.draftDao().findOpen();
+        assertEquals(2, drafts.size());
+        assertEquals("同一张图的两笔共享批次标签", drafts.get(0).batchId, drafts.get(1).batchId);
+        assertEquals(0, drafts.get(0).splitIndex);
+        assertEquals("序号要与图里从上到下一致", 1, drafts.get(1).splitIndex);
+        assertEquals(DraftSource.IMAGE, drafts.get(0).source);
+        assertEquals(EvidenceType.IMAGE, drafts.get(0).evidenceType);
+        assertNull("原图不留（HANDOFF 决策 37）", drafts.get(0).evidenceRef);
+        assertEquals("转写文本留下来当原话", transcript, drafts.get(0).rawInput);
+    }
+
+    @Test
+    public void submitImageWithoutTranscriberFailsBeforeCallingAnything() {
+        DraftRepository repository = new DraftRepository(db, settingsRepository,
+                categoryRepository, entryRepository, failingRuntime());
+
+        DraftRepository.ImageSubmitReport report = repository.submitImage(
+                new byte[]{1, 2, 3}, "image/jpeg", "相册截图");
+
+        assertFalse(report.isOk());
+        assertTrue("要说清缺的是哪一家的 Key", report.summary().contains("硅基流动"));
+        assertEquals("连库都不该动", 0, db.draftDao().findOpen().size());
     }
 }

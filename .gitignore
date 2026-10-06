@@ -11,6 +11,10 @@ WiseBook/local.properties
 # ============ 隐私：含真实支付记录的实验材料 ============
 p2-experiment/samples/
 p2-experiment/results/
+# 实机验证时抓的截图（上面就是真实账单）与构建日志
+p2-experiment/*.png
+p2-experiment/*.xml
+p2-experiment/*-out.txt
 
 # ============ 构建产物 ============
 .gradle/

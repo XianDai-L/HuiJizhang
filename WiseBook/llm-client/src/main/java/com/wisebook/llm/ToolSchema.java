@@ -120,6 +120,39 @@ public final class ToolSchema {
             return this;
         }
 
+        /**
+         * 对象数组：每个元素都按同一个子 schema 定义与校验。
+         *
+         * <p>加它是为了「一图多笔」（P2）：一张账单列表截图里可能有好几笔账，
+         * 产品需要一个「账目数组」的输出结构，而原来的构造器只能产出扁平字段。
+         *
+         * <p>子 schema 直接沿用单笔草稿那一份（{@link ToolSchema#parameters()}），
+         * <b>而且是同一个对象引用，不做深拷贝</b>——数组元素与单笔本该是同一套字段定义，
+         * 拷贝一份反而让「改了单笔、忘了改数组」重新成为可能。
+         */
+        public Builder objectArray(String field, String desc, Requirement requirement,
+                                   ToolSchema itemSchema) {
+            JsonObject item = new JsonObject();
+            item.addProperty("type", "object");
+            JsonObject itemProperties = itemSchema.parameters().getAsJsonObject("properties");
+            if (itemProperties != null) {
+                item.add("properties", itemProperties);
+            }
+            JsonArray itemRequired = itemSchema.parameters().getAsJsonArray("required");
+            if (itemRequired != null) {
+                item.add("required", itemRequired);
+            }
+            JsonObject property = new JsonObject();
+            property.addProperty("type", "array");
+            property.addProperty("description", desc);
+            property.add("items", item);
+            properties.add(field, property);
+            if (requirement == Requirement.REQUIRED) {
+                required.add(field);
+            }
+            return this;
+        }
+
         private Builder add(String field, String type, String desc,
                             Requirement requirement, JsonArray enumValues) {
             JsonObject property = new JsonObject();

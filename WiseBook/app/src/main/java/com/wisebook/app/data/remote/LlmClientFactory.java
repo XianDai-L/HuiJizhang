@@ -1,8 +1,10 @@
 package com.wisebook.app.data.remote;
 
 import com.wisebook.app.domain.model.LlmProvider;
+import com.wisebook.llm.ImageReader;
 import com.wisebook.llm.LlmClient;
 import com.wisebook.llm.LlmModelConfig;
+import com.wisebook.llm.OpenAiCompatibleImageReader;
 import com.wisebook.llm.OpenAiCompatibleLlmClient;
 
 /**
@@ -23,6 +25,26 @@ public final class LlmClientFactory {
     public static LlmClient create(LlmConfigStore store) {
         return new OpenAiCompatibleLlmClient(
                 modelConfig(store.provider(), store.model(), store.apiKey()));
+    }
+
+    /**
+     * 造截图入口的转写器（图 → 文字）；<b>没有硅基流动 Key 时返回 {@code null}</b>。
+     *
+     * <p>用 {@link OpenAiCompatibleImageReader.InstructionPlacement#USER_ONLY}：
+     * {@code DeepSeek-OCR} 是 OCR 专用模型，不认 system 消息、只认固定模板（P2 实测）。
+     *
+     * <p>刻意不复用 {@link #create}：那一步的产出是<b>文本</b>，
+     * 与"用哪家模型做结构化"是两件独立的事——这正是路线 B 的架构主张
+     * （见 `docs/P2-截图实验.md`）。
+     */
+    public static ImageReader createImageReader(LlmConfigStore store) {
+        String key = store.apiKeyFor(LlmProvider.SILICONFLOW);
+        if (key == null || key.trim().isEmpty()) {
+            return null;
+        }
+        return new OpenAiCompatibleImageReader(
+                LlmModelConfig.siliconFlow(key.trim(), LlmProvider.SILICONFLOW_OCR_MODEL),
+                OpenAiCompatibleImageReader.InstructionPlacement.USER_ONLY);
     }
 
     /**

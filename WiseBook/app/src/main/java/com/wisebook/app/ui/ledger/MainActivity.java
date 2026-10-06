@@ -3,6 +3,7 @@ package com.wisebook.app.ui.ledger;
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Bundle;
 import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
@@ -18,6 +19,7 @@ import android.widget.TextView;
 
 import androidx.activity.EdgeToEdge;
 import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.PickVisualMediaRequest;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
@@ -27,6 +29,7 @@ import com.wisebook.app.R;
 import com.wisebook.app.WiseBookApp;
 import com.wisebook.app.data.DraftRepository;
 import com.wisebook.app.ui.EdgeToEdgeInsets;
+import com.wisebook.app.ui.ImageInputLoader;
 import com.wisebook.app.ui.chat.ChatViewModel;
 import com.wisebook.app.ui.confirm.ConfirmActivity;
 import com.wisebook.app.ui.pending.PendingDraftsActivity;
@@ -53,6 +56,8 @@ public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "MainActivity";
 
+    /** 提升成字段是为了选图：读字节要提交到应用唯一的数据库线程，回调里要用到它 */
+    private WiseBookApp app;
     private ChatViewModel viewModel;
 
     private TextView openDraftCount;
@@ -60,6 +65,7 @@ public class MainActivity extends AppCompatActivity {
     private TextView speak;
     private TextView parseResult;
     private TextView parsingHint;
+    private ImageButton pickImageButton;
     private ImageButton voiceModeButton;
     private ImageButton sendButton;
 
@@ -83,6 +89,18 @@ public class MainActivity extends AppCompatActivity {
                 }
             });
 
+    /**
+     * 选图。用系统照片选择器（D2 §7 已指定这条路），<b>零权限</b>：
+     * 不需要 {@code READ_MEDIA_IMAGES}，也就没有"一个记账应用为什么要读我整个相册"的疑问
+     * ——应用拿到的只是用户明确选中的那一个文件的读权限。
+     */
+    private final ActivityResultLauncher<PickVisualMediaRequest> pickImageLauncher =
+            registerForActivityResult(new ActivityResultContracts.PickVisualMedia(), uri -> {
+                if (uri != null) {
+                    loadAndSubmit(uri);
+                }
+            });
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -90,7 +108,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         EdgeToEdgeInsets.apply(findViewById(R.id.main));
 
-        WiseBookApp app = WiseBookApp.from(this);
+        app = WiseBookApp.from(this);
         DraftRepository draftRepository = app.draftRepository();
 
         viewModel = new ViewModelProvider(this, new ChatViewModel.Factory(
@@ -104,9 +122,11 @@ public class MainActivity extends AppCompatActivity {
         speak = findViewById(R.id.speak);
         parseResult = findViewById(R.id.parse_result);
         parsingHint = findViewById(R.id.parsing_hint);
+        pickImageButton = findViewById(R.id.btn_pick_image);
         voiceModeButton = findViewById(R.id.btn_voice_mode);
         sendButton = findViewById(R.id.btn_send);
 
+        pickImageButton.setOnClickListener(view -> pickImage());
         sendButton.setOnClickListener(view -> submit());
         // 输入法如果给的是「发送」键，也该能发出去——现在没有「解析」按钮了，
         // 让回车什么都不做会让人以为输入框坏了
@@ -160,6 +180,35 @@ public class MainActivity extends AppCompatActivity {
         viewModel.submit(text);
     }
 
+    // ------------------------------------------------------------------ 截图
+
+    /**
+     * 打开系统照片选择器。
+     *
+     * <p>限制成「只选图片」：用户不会在这里误选到视频或文档，少一类需要解释的失败。
+     */
+    private void pickImage() {
+        pickImageLauncher.launch(new PickVisualMediaRequest.Builder()
+                .setMediaType(ActivityResultContracts.PickVisualMedia.ImageOnly.INSTANCE)
+                .build());
+    }
+
+    /**
+     * 读图 → 交给 ViewModel。
+     *
+     * <p>读字节在后台（{@link ImageInputLoader} 内部），这里只接回调——
+     * Activity 里仍然一行线程代码都没有，与文字入口保持一致。
+     *
+     * <p>选完图会顺手收起键盘：截图记账时用户不是在看输入框，
+     * 留着键盘会挡住刚出现的解析结果行。
+     */
+    private void loadAndSubmit(Uri uri) {
+        hideKeyboard();
+        ImageInputLoader.loadAsync(getContentResolver(), uri, app.databaseExecutor(),
+                image -> viewModel.submitImage(image.bytes, image.mimeType, image.displayName),
+                this::showTip);
+    }
+
     private void render(ChatViewModel.UiState state) {
         parsingHint.setVisibility(state.parsing ? View.VISIBLE : View.GONE);
         // 解析中只锁「发送」这一个按钮，不锁输入框：上一句已经交出去了，
@@ -167,6 +216,9 @@ public class MainActivity extends AppCompatActivity {
         // （原来锁整个输入框会顺手把键盘收掉，等结果回来还得再点一次输入框）
         sendButton.setEnabled(!state.parsing);
         speak.setEnabled(!state.parsing && !listening);
+        // 相机也一起锁上：上一次选图还在解析时又选一张，会各自落一批草稿，
+        // 而用户看到的是"我明明只选了一次"
+        pickImageButton.setEnabled(!state.parsing);
 
         if (!state.hasResult()) {
             parseResult.setVisibility(View.GONE);
@@ -196,7 +248,10 @@ public class MainActivity extends AppCompatActivity {
 
     /** 结果行的去处：已经入账的看账目，等核对的进确认页。两者都没有时它不可点 */
     private void openResult(ChatViewModel.UiState state) {
-        if (state.entryId > 0L) {
+        if (state.openPendingList) {
+            // 一图多笔：把整批摆在一起看，比只跳进其中一笔更符合"我刚发了张账单"的预期
+            startActivity(new Intent(this, PendingDraftsActivity.class));
+        } else if (state.entryId > 0L) {
             startActivity(EntryDetailActivity.intentFor(this, state.entryId));
         } else if (state.draftId > 0L) {
             startActivity(ConfirmActivity.intentFor(this, state.draftId));

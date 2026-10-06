@@ -19,6 +19,15 @@ public enum LlmProvider implements CodedEnum {
     /** 官方直连，退路 */
     DEEPSEEK("deepseek", "DeepSeek 官方", "deepseek-chat");
 
+    /**
+     * 截图入口第一步（图 → 文字）用的转写模型，挂在硅基流动下（D2 §6 指定）。
+     *
+     * <p>它<b>只有 8K 上下文</b>，但专做文档理解、3B 且限免；截图的文字量远小于这个上限。
+     * 之所以不让它跟着「当前服务商」走：这一步的产出只是<b>文本</b>，
+     * 与"用哪家模型做结构化"是两件独立的事（P2 实验结论，见 `docs/P2-截图实验.md`）。
+     */
+    public static final String SILICONFLOW_OCR_MODEL = "deepseek-ai/DeepSeek-OCR";
+
     private final String code;
     private final String label;
     private final String defaultModel;
