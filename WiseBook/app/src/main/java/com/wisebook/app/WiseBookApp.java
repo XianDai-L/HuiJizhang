@@ -9,6 +9,7 @@ import com.wisebook.app.data.DraftRepository;
 import com.wisebook.app.data.EntryRepository;
 import com.wisebook.app.data.ReportRepository;
 import com.wisebook.app.data.SettingsRepository;
+import com.wisebook.app.data.local.EvidenceStore;
 import com.wisebook.app.data.local.WiseBookDatabase;
 import com.wisebook.app.data.local.seed.CategorySeeder;
 import com.wisebook.app.data.remote.LlmClientFactory;
@@ -37,6 +38,7 @@ public class WiseBookApp extends Application {
     private ExecutorService databaseExecutor;
     private WiseBookDatabase database;
 
+    private EvidenceStore evidenceStore;
     private SettingsRepository settingsRepository;
     private CategoryRepository categoryRepository;
     private EntryRepository entryRepository;
@@ -81,11 +83,13 @@ public class WiseBookApp extends Application {
 
         settingsRepository = new SettingsRepository(database);
         categoryRepository = new CategoryRepository(database);
-        entryRepository = new EntryRepository(database);
+        // 证据文件（截图原图）：放在应用私有目录，仓储只存相对路径（决策 47）
+        evidenceStore = new EvidenceStore(getFilesDir());
+        entryRepository = new EntryRepository(database, evidenceStore);
         reportRepository = new ReportRepository(database);
         llmRuntime = createLlmRuntime();
         draftRepository = new DraftRepository(database, settingsRepository, categoryRepository,
-                entryRepository, llmRuntime);
+                entryRepository, llmRuntime, evidenceStore);
 
         // 启动初始化放后台：建库、播种、归档超时草稿都是磁盘操作，不能占主线程
         databaseExecutor.execute(() -> {
@@ -130,6 +134,11 @@ public class WiseBookApp extends Application {
 
     public ReportRepository reportRepository() {
         return reportRepository;
+    }
+
+    /** 证据文件（截图原图）的读写；详情页要用它把相对路径解析成图片 */
+    public EvidenceStore evidenceStore() {
+        return evidenceStore;
     }
 
     public LlmConfigStore llmConfigStore() {

@@ -15,7 +15,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="20dp">
+        android:padding="14dp">
 
         <TextView
             android:layout_width="wrap_content"
@@ -28,7 +28,7 @@
             android:id="@+id/why"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
+            android:layout_marginTop="3dp"
             android:textSize="14sp"
             tools:text="金额达到大额阈值（6800 元 ≥ 300 元）" />
 
@@ -36,14 +36,14 @@
             android:id="@+id/questions"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="14dp"
+            android:layout_marginTop="8dp"
             android:textSize="14sp"
             tools:text="需要你补充的：这笔具体是多少钱？" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
+            android:layout_marginTop="12dp"
             android:text="@string/confirm_amount"
             android:textSize="13sp" />
 
@@ -55,17 +55,12 @@
             android:inputType="numberDecimal"
             tools:text="6800" />
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="14dp"
-            android:text="@string/confirm_direction"
-            android:textSize="13sp" />
-
+        <!-- 方向不另起标签：两个单选按钮上的「支出 / 收入」已经把话说完了，省下一行 -->
         <RadioGroup
             android:id="@+id/group_direction"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
             android:orientation="horizontal">
 
             <RadioButton
@@ -82,46 +77,69 @@
                 android:text="收入" />
         </RadioGroup>
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
-            android:text="@string/confirm_category"
-            android:textSize="13sp" />
-
-        <Button
-            android:id="@+id/btn_category"
+        <!-- 分类与支付方式并排：两项各自只有一个按钮，并排省下一整行 -->
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textAllCaps="false"
-            tools:text="餐饮&gt;外卖" />
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal">
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
-            android:text="@string/confirm_payment"
-            android:textSize="13sp" />
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
 
-        <Button
-            android:id="@+id/btn_payment"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:textAllCaps="false"
-            tools:text="未填（可以不填）" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/confirm_category"
+                    android:textSize="13sp" />
+
+                <Button
+                    android:id="@+id/btn_category"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:maxLines="1"
+                    android:textAllCaps="false"
+                    tools:text="餐饮&gt;外卖" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/confirm_payment"
+                    android:textSize="13sp" />
+
+                <Button
+                    android:id="@+id/btn_payment"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:maxLines="1"
+                    android:textAllCaps="false"
+                    tools:text="未填（可以不填）" />
+            </LinearLayout>
+        </LinearLayout>
 
         <TextView
             android:id="@+id/occurred_at"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="14dp"
+            android:layout_marginTop="8dp"
             android:textSize="13sp"
             tools:text="发生时间：2026-09-24 20:30（原句明确写了）" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="14dp"
+            android:layout_marginTop="8dp"
             android:text="@string/confirm_merchant"
             android:textSize="13sp" />
 
@@ -133,44 +151,72 @@
             android:inputType="text"
             tools:text="楼下小馆" />
 
+        <!--
+          原始输入默认折叠。它常是一整段截图转写文本，展开着就把下面三个操作按钮顶到屏幕外；
+          需要核对时点开就行——"想看的时候点一下"比"一进来就被半屏长文挤走按钮"更符合此刻要做的事。
+        -->
+        <TextView
+            android:id="@+id/btn_toggle_raw"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:background="?android:attr/selectableItemBackground"
+            android:paddingVertical="4dp"
+            android:textSize="13sp"
+            tools:text="你原来说的 ▸" />
+
         <TextView
             android:id="@+id/raw_input"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
+            android:layout_marginTop="2dp"
             android:textSize="12sp"
-            tools:text="你原来说的：今天打车 28" />
+            android:visibility="gone"
+            tools:text="今天打车 28" />
 
-        <Button
-            android:id="@+id/btn_post"
+        <!-- 三个操作并排：一个按钮占一行会把它们整体推到屏幕下半部分之外 -->
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
-            android:text="@string/confirm_action_post"
-            android:textSize="16sp" />
+            android:layout_marginTop="14dp"
+            android:orientation="horizontal">
 
-        <Button
-            android:id="@+id/btn_save"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:text="@string/confirm_action_save"
-            android:textSize="15sp" />
+            <Button
+                android:id="@+id/btn_post"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:maxLines="1"
+                android:text="@string/confirm_action_post"
+                android:textSize="14sp" />
 
-        <Button
-            android:id="@+id/btn_discard"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:text="@string/confirm_action_discard"
-            android:textSize="15sp" />
+            <Button
+                android:id="@+id/btn_save"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_weight="1"
+                android:maxLines="1"
+                android:text="@string/confirm_action_save"
+                android:textSize="14sp" />
+
+            <Button
+                android:id="@+id/btn_discard"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_weight="1"
+                android:maxLines="1"
+                android:text="@string/confirm_action_discard"
+                android:textSize="14sp" />
+        </LinearLayout>
 
         <TextView
             android:id="@+id/status"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="14dp"
-            android:textSize="14sp" />
+            android:layout_marginTop="8dp"
+            android:textSize="13sp" />
 
     </LinearLayout>
 

@@ -201,32 +201,32 @@ public class ChatDraftParserTest {
     // ------------------------------------------------------------ 分类
 
     @Test
-    public void merchantHardMapOutranksModelCategory() {
-        // 注意 merchant 必须由模型填出来——这正是 prompt 里那段"只填具体商户、别填动作"
-        // 存在的意义：商户填不对，整个映射表这一层就白设了
+    public void merchantNameDoesNotOverrideModelCategory() {
+        // 商户映射表已删除（HANDOFF 决策 46）：截图里出现的商户名不一定与这笔账有关，
+        // 所以商户名不再决定分类。prompt 里"只填具体商户、别填动作"那段仍然有用，
+        // 但它现在服务于可解释性（详情页要显示对方是谁），不再用来定分类。
         FakeLlmClient client = new FakeLlmClient().thenReturnPayload(
                 "{\"direction\":\"expense\",\"amountCents\":3300,"
                         + "\"categoryPath\":\"餐饮>外卖\",\"merchant\":\"星巴克\"}");
 
         DraftEntity draft = parse(client, "星巴克买了个东西");
 
-        assertEquals("商户映射表命中即定，模型给的分类不作数",
-                Long.valueOf(TestFixtures.CAT_COFFEE), draft.categoryId);
-        assertFalse("硬映射命中不该标摇摆，哪怕原文有模糊词",
+        assertEquals("模型说是外卖就是外卖", Long.valueOf(TestFixtures.CAT_TAKEOUT), draft.categoryId);
+        assertFalse("分类照旧不产生摇摆标记",
                 draft.confidenceFlags.contains(ConfidenceFlag.CATEGORY_SWING));
     }
 
     @Test
-    public void platformMerchantWithoutItemsStaysAtTopLevel() {
+    public void platformMerchantKeepsTheModelCategory() {
         FakeLlmClient client = new FakeLlmClient().thenReturnPayload(
                 "{\"direction\":\"expense\",\"amountCents\":5000,"
                         + "\"categoryPath\":\"购物>日用\",\"merchant\":\"淘宝\"}");
 
         DraftEntity draft = parse(client, "淘宝下单");
 
-        assertEquals("平台型商户没有商品名时只挂一级，不猜二级",
-                Long.valueOf(TestFixtures.CAT_SHOPPING), draft.categoryId);
-        assertFalse("只挂一级不再标不确定——挂一级在报表层面本来就是对的",
+        assertEquals("平台型不再被改挂到一级，直接采用模型给的二级",
+                Long.valueOf(TestFixtures.CAT_DAILY), draft.categoryId);
+        assertFalse("同样不产生摇摆标记",
                 draft.confidenceFlags.contains(ConfidenceFlag.CATEGORY_SWING));
     }
 

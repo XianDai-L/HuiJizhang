@@ -3,6 +3,7 @@ package com.wisebook.app.ui.confirm;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.RadioGroup;
@@ -51,6 +52,9 @@ public class ConfirmActivity extends AppCompatActivity {
     private TextView occurredAt;
     private EditText merchant;
     private TextView rawInput;
+    private TextView rawToggle;
+    /** 原始输入是否展开。默认收起：它常是一整段截图转写文本，展开会把操作按钮顶出屏幕 */
+    private boolean rawExpanded;
     private TextView status;
     private Button postButton;
     private Button saveButton;
@@ -76,7 +80,13 @@ public class ConfirmActivity extends AppCompatActivity {
         occurredAt = findViewById(R.id.occurred_at);
         merchant = findViewById(R.id.merchant);
         rawInput = findViewById(R.id.raw_input);
+        rawToggle = findViewById(R.id.btn_toggle_raw);
         status = findViewById(R.id.status);
+        rawToggle.setOnClickListener(view -> {
+            rawExpanded = !rawExpanded;
+            applyRawState();
+        });
+        applyRawState();
         postButton = findViewById(R.id.btn_post);
         saveButton = findViewById(R.id.btn_save);
         discardButton = findViewById(R.id.btn_discard);
@@ -147,12 +157,26 @@ public class ConfirmActivity extends AppCompatActivity {
         paymentButton.setText(form.paymentText == null
                 ? getString(R.string.confirm_payment_unset) : form.paymentText);
         occurredAt.setText(getString(R.string.confirm_occurred_at) + "：" + form.occurredAtText);
-        rawInput.setText(getString(R.string.confirm_raw_input) + "：" + form.rawInput);
+        // 「你原来说的」这几个字已经由折叠标题承担，这里只放内容本身
+        rawInput.setText(form.rawInput == null ? "" : form.rawInput);
 
         postButton.setEnabled(form.editable);
         saveButton.setEnabled(form.editable);
         amount.setEnabled(form.editable);
         merchant.setEnabled(form.editable);
+    }
+
+    /**
+     * 原始输入的展开 / 收起。
+     *
+     * <p>整行标题都可点（而不是只在末尾挂一个小箭头）：点中的面积更大，
+     * 而"我原来那句话"本身就是要看的东西，点它展开是最自然的手势。
+     */
+    private void applyRawState() {
+        rawInput.setVisibility(rawExpanded ? View.VISIBLE : View.GONE);
+        rawToggle.setText(rawExpanded
+                ? getString(R.string.confirm_raw_toggle) + " ▾"
+                : getString(R.string.confirm_raw_toggle) + " ▸");
     }
 
     /** 分类选择器：一级横向、二级在下方展开（与账本页共用同一份实现） */

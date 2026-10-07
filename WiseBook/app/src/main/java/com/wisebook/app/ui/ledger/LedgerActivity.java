@@ -2,6 +2,7 @@ package com.wisebook.app.ui.ledger;
 
 import android.os.Bundle;
 import android.view.View;
+import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -59,6 +60,15 @@ public class LedgerActivity extends AppCompatActivity {
                 .setText(getString(R.string.ledger_title) + " · " + viewModel.range().label());
         summary = findViewById(R.id.summary);
         empty = findViewById(R.id.empty);
+
+        // 按钮上显示"当前按什么排"（而不是"点了会变成什么"）：状态与显示一致，
+        // 用户不用先点一次才知道现在是什么口径
+        Button sortButton = findViewById(R.id.btn_sort);
+        sortButton.setOnClickListener(view -> viewModel.toggleSort());
+        viewModel.sortOrder().observe(this, order -> sortButton.setText(
+                order == LedgerViewModel.SortOrder.CREATED_AT
+                        ? R.string.ledger_sort_created
+                        : R.string.ledger_sort_occurred));
 
         adapter = new EntryAdapter(entry ->
                 startActivity(EntryDetailActivity.intentFor(this, entry.entryId)));

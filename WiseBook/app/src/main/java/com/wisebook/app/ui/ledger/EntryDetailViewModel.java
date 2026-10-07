@@ -10,6 +10,7 @@ import com.wisebook.app.data.CategoryRepository;
 import com.wisebook.app.data.DraftRepository;
 import com.wisebook.app.data.EntryRepository;
 import com.wisebook.app.data.SettingsRepository;
+import com.wisebook.app.data.local.EvidenceStore;
 import com.wisebook.app.data.local.entity.DraftEntity;
 import com.wisebook.app.data.local.entity.EntryEntity;
 import com.wisebook.app.data.local.entity.SettingEntity;
@@ -63,19 +64,27 @@ public class EntryDetailViewModel extends ViewModel {
         public final String rawText;
         /** 展开后显示的其余解析内容；没有时为 {@code null} */
         public final String parseDetails;
+        /**
+         * 原图的<b>绝对路径</b>；没有原图（文字/语音入口，或文件已被清理）时为 {@code null}。
+         *
+         * <p>库里存的是相对路径，这里拼成绝对路径再交给界面——
+         * 界面不该知道 {@code filesDir} 在哪，更不该自己拼路径。
+         */
+        public final String evidencePath;
         public final List<Row> amountRows;
         public final List<Row> timeRows;
         public final List<Row> fieldRows;
         public final List<Row> postingRows;
 
         Detail(String amount, String directionCategory, String rawLabel, String rawText,
-               String parseDetails, List<Row> amountRows, List<Row> timeRows,
-               List<Row> fieldRows, List<Row> postingRows) {
+               String parseDetails, String evidencePath, List<Row> amountRows,
+               List<Row> timeRows, List<Row> fieldRows, List<Row> postingRows) {
             this.amount = amount;
             this.directionCategory = directionCategory;
             this.rawLabel = rawLabel;
             this.rawText = rawText;
             this.parseDetails = parseDetails;
+            this.evidencePath = evidencePath;
             this.amountRows = amountRows;
             this.timeRows = timeRows;
             this.fieldRows = fieldRows;
@@ -87,6 +96,7 @@ public class EntryDetailViewModel extends ViewModel {
     private final DraftRepository draftRepository;
     private final SettingsRepository settingsRepository;
     private final CategoryRepository categoryRepository;
+    private final EvidenceStore evidenceStore;
     private final ExecutorService executor;
     private final long userId;
 
@@ -101,12 +111,14 @@ public class EntryDetailViewModel extends ViewModel {
 
     public EntryDetailViewModel(EntryRepository entryRepository, DraftRepository draftRepository,
                                 SettingsRepository settingsRepository,
-                                CategoryRepository categoryRepository, ExecutorService executor,
+                                CategoryRepository categoryRepository,
+                                EvidenceStore evidenceStore, ExecutorService executor,
                                 long userId) {
         this.entryRepository = entryRepository;
         this.draftRepository = draftRepository;
         this.settingsRepository = settingsRepository;
         this.categoryRepository = categoryRepository;
+        this.evidenceStore = evidenceStore;
         this.executor = executor;
         this.userId = userId;
     }
@@ -196,10 +208,12 @@ public class EntryDetailViewModel extends ViewModel {
     // ------------------------------------------------------------------ 组装
 
     private void publish() {
-        detail.postValue(compose(entry, draftRepository.findDraft(entry.draftId), tree));
+        detail.postValue(compose(entry, draftRepository.findDraft(entry.draftId), tree,
+                evidenceStore));
     }
 
-    private static Detail compose(EntryEntity entry, DraftEntity draft, CategoryTree tree) {
+    private static Detail compose(EntryEntity entry, DraftEntity draft, CategoryTree tree,
+                                  EvidenceStore evidenceStore) {
         String amount = (entry.amountIsEstimated ? "≈ " : "")
                 + DraftFormatter.groupedAmount(entry.amountCents);
         String directionCategory = (entry.direction == null ? "方向未定" : entry.direction.label())
@@ -211,6 +225,7 @@ public class EntryDetailViewModel extends ViewModel {
                 rawLabel(draft),
                 rawText(draft, entry),
                 draft == null ? null : parseDetails(draft, entry, tree),
+                evidencePath(evidenceStore, draft),
                 amountRows(entry, draft),
                 timeRows(entry),
                 fieldRows(entry),
@@ -231,20 +246,34 @@ public class EntryDetailViewModel extends ViewModel {
     /**
      * 原始输入本身。
      *
-     * <p>文本入口直接给原话；图片与语音给证据文件路径——
-     * 它们是"这笔账从哪来"的唯一凭据，P2/P3 接入前那条路径还不存在，
-     * 所以老实显示"未保存原文件"，而不是编一句话出来。
+     * <p>三种入口统一显示 {@code raw_input}：文字入口是原话，截图入口是 OCR 转写出来的文字
+     * （{@code ImageDraftParser} 把转写文本写进了同一列）。
+     * <b>"模型当时看到了什么"因此才看得见</b>——截图出错时，这一栏往往就是答案所在。
+     *
+     * <p>原图不再走这里：它是另一个东西（图像），由 {@link #evidencePath} 单独给出，
+     * 界面上有专门的图位。
      */
     private static String rawText(DraftEntity draft, EntryEntity entry) {
         if (draft == null) {
             return "（原始记录已不在）";
         }
-        if (draft.evidenceType == EvidenceType.IMAGE || draft.evidenceType == EvidenceType.AUDIO) {
-            String ref = draft.evidenceRef;
-            return (ref == null || ref.trim().isEmpty()) ? "（未保存原文件）" : ref;
-        }
         String input = draft.rawInput;
-        return (input == null || input.trim().isEmpty()) ? "（没有留下原话）" : input;
+        return (input == null || input.trim().isEmpty()) ? "（没有留下原文）" : input;
+    }
+
+    /**
+     * 原图的绝对路径；没有原图或文件已不在这台设备上时返回 {@code null}。
+     *
+     * <p>把"库里那条相对路径"解析成磁盘文件这一步收在 ViewModel 里：
+     * 界面拿到的是"能不能显示、显示哪个文件"的结论，而不是一串需要自己拼的路径。
+     * 这也是"只存相对路径"能成立的前提——拼 {@code filesDir} 的地方只有一个。
+     */
+    private static String evidencePath(EvidenceStore evidenceStore, DraftEntity draft) {
+        if (draft == null || draft.evidenceRef == null) {
+            return null;
+        }
+        java.io.File file = evidenceStore.resolve(draft.evidenceRef);
+        return file == null ? null : file.getAbsolutePath();
     }
 
     private static String parseDetails(DraftEntity draft, EntryEntity entry, CategoryTree tree) {
@@ -332,17 +361,19 @@ public class EntryDetailViewModel extends ViewModel {
         private final DraftRepository draftRepository;
         private final SettingsRepository settingsRepository;
         private final CategoryRepository categoryRepository;
+        private final EvidenceStore evidenceStore;
         private final ExecutorService executor;
         private final long userId;
 
         public Factory(EntryRepository entryRepository, DraftRepository draftRepository,
                        SettingsRepository settingsRepository,
-                       CategoryRepository categoryRepository, ExecutorService executor,
-                       long userId) {
+                       CategoryRepository categoryRepository, EvidenceStore evidenceStore,
+                       ExecutorService executor, long userId) {
             this.entryRepository = entryRepository;
             this.draftRepository = draftRepository;
             this.settingsRepository = settingsRepository;
             this.categoryRepository = categoryRepository;
+            this.evidenceStore = evidenceStore;
             this.executor = executor;
             this.userId = userId;
         }
@@ -352,7 +383,7 @@ public class EntryDetailViewModel extends ViewModel {
         @SuppressWarnings("unchecked")
         public <T extends ViewModel> T create(@NonNull Class<T> modelClass) {
             return (T) new EntryDetailViewModel(entryRepository, draftRepository,
-                    settingsRepository, categoryRepository, executor, userId);
+                    settingsRepository, categoryRepository, evidenceStore, executor, userId);
         }
     }
 }

@@ -13,19 +13,19 @@ import org.junit.Test;
 import java.util.List;
 
 /**
- * 分类判定（D1 §6.4 / D1-A §3）。
+ * 分类判定（D1 §6.4 / D1-A §4）。
  *
- * <p>简化之后（HANDOFF 决策 30）要守住的东西一共三条：
+ * <p>删除商户映射表之后（HANDOFF 决策 46）要守住的东西一共三条：
  *
  * <ol>
- *   <li><b>能确定的地方不交给模型</b>：商户硬映射、平台型规则优先于模型给的分类</li>
  *   <li><b>模型给什么就用什么</b>，不叠加任何摇摆判据</li>
- *   <li><b>没有分类可用就落到该方向的默认桶</b>（支出/收入是「其他」，转账是「人情」），
+ *   <li><b>模型说不出所以然时落该方向的默认桶</b>（支出/收入是「其他」，转账是「人情」），
  *       而不是反问用户</li>
+ *   <li><b>商户名不再影响分类</b>——这是删除映射表换来的行为，必须有测试钉住，
+ *       否则哪天有人"顺手把映射表加回来"也不会被发现</li>
  * </ol>
  *
- * <p>这里刻意不再有任何 {@code swing} 相关断言——那个概念已经从代码里删掉了。
- * 留着"验证不存在的东西"的测试，是更大的混乱来源。
+ * <p>这里同样不再有任何 {@code swing} 相关断言——那个概念已经删掉了（决策 30）。
  */
 public class CategoryClassifierTest {
 
@@ -48,49 +48,7 @@ public class CategoryClassifierTest {
         return List.of(new CategoryCandidate(id, name));
     }
 
-    // ------------------------------------------------- 第一层：商户硬映射
-
-    @Test
-    public void verticalMerchantIsDecidedByTheMap() {
-        CategoryClassifier.Result result = classifier.classify(draft("星巴克", 3300L, List.of()));
-
-        assertEquals(Long.valueOf(TestFixtures.CAT_COFFEE), result.categoryId);
-        assertEquals(Long.valueOf(TestFixtures.CAT_FOOD), result.rootCategoryId);
-        assertTrue("依据要能说清是映射表定的", result.reason.contains("商户映射表"));
-    }
-
-    @Test
-    public void verticalMerchantOutranksTheModelCategory() {
-        // 模型说是「外卖」，但商户是星巴克——映射表优先于模型
-        CategoryClassifier.Result result = classifier.classify(
-                draft("星巴克", 3300L, candidate(TestFixtures.CAT_TAKEOUT, "餐饮>外卖")));
-
-        assertEquals(Long.valueOf(TestFixtures.CAT_COFFEE), result.categoryId);
-    }
-
-    // ------------------------------------------------- 第二层：平台型商户
-
-    @Test
-    public void platformMerchantWithoutItemsGoesToTopLevel() {
-        CategoryClassifier.Result result = classifier.classify(draft("淘宝", 5000L, List.of()));
-
-        assertEquals("无法硬映射，就只挂一级「购物」",
-                Long.valueOf(TestFixtures.CAT_SHOPPING), result.categoryId);
-        assertEquals("挂一级意味着末级就是一级本身",
-                Long.valueOf(TestFixtures.CAT_SHOPPING), result.rootCategoryId);
-        assertTrue(result.reason.contains("只挂一级"));
-    }
-
-    @Test
-    public void platformMerchantWithItemsAdoptsTheModelCategory() {
-        DraftEntity draft = draft("淘宝", 5000L, candidate(TestFixtures.CAT_DAILY, "购物>日用"));
-        draft.items = List.of("纸巾");
-
-        assertEquals("有商品名就按商品名归二级",
-                Long.valueOf(TestFixtures.CAT_DAILY), classifier.classify(draft).categoryId);
-    }
-
-    // --------------------------------------------- 第三层：模型给的分类
+    // ---------------------------------------------- 第一段：模型给的分类
 
     @Test
     public void adoptsTheModelCategoryWhateverTheAmount() {
@@ -103,7 +61,30 @@ public class CategoryClassifierTest {
         assertTrue(result.reason.contains("采用模型"));
     }
 
-    // ---------------------------------------------------- 兜底：「其他」
+    /**
+     * 删除映射表的行为哨兵：商户名本身不再决定分类。
+     *
+     * <p>星巴克原本会硬映射到「餐饮&gt;咖啡」，现在一律听模型的——
+     * 因为截图里出现的商户名不一定与这笔账有关（决策 46）。
+     */
+    @Test
+    public void merchantNameNoLongerDecidesTheCategory() {
+        CategoryClassifier.Result result = classifier.classify(
+                draft("星巴克", 3300L, candidate(TestFixtures.CAT_TAKEOUT, "餐饮>外卖")));
+
+        assertEquals("模型说是外卖就是外卖，不再被商户名覆盖",
+                Long.valueOf(TestFixtures.CAT_TAKEOUT), result.categoryId);
+    }
+
+    @Test
+    public void knownMerchantWithoutModelCategoryFallsBackInsteadOfGuessing() {
+        // 商户名再眼熟，模型没给分类时也不猜——落默认桶
+        CategoryClassifier.Result result = classifier.classify(draft("星巴克", 3300L, List.of()));
+
+        assertEquals(Long.valueOf(TestFixtures.CAT_MISC), result.categoryId);
+    }
+
+    // ---------------------------------------------------- 兜底：默认桶
 
     @Test
     public void missingCategoryFallsBackToOther() {
@@ -135,7 +116,7 @@ public class CategoryClassifierTest {
 
     @Test
     public void transferWithoutCategoryFallsBackToSocial() {
-        // 转账复用支出分类树（决策 27），默认落「人情」而不是「其他」（决策 31）。
+        // 转账复用支出分类树（决策 27），默认落「人情」而不是「其他」（决策 32）。
         // 实机反馈：模型常把转账判成「其他」，而那是个什么都说明不了的桶
         DraftEntity draft = draft("张三", 200_000L, List.of());
         draft.direction = Direction.TRANSFER;

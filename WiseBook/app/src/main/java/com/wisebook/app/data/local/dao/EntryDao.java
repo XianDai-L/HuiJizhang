@@ -46,6 +46,19 @@ public interface EntryDao {
             + " ORDER BY occurred_at DESC, entry_id DESC")
     LiveData<List<EntryEntity>> observeBetween(long fromInclusive, long toExclusive);
 
+    /**
+     * 与 {@link #observeBetween} 同一批数据，但按「记账时间」倒序。
+     *
+     * <p>记两条的原因：{@code ORDER BY} 的字段没法当参数传（Room 的 {@code @Query} 是编译期
+     * 生成代码，排序字段写死在 SQL 里），所以只能一个排序一个方法。
+     *
+     * <p>用 {@code created_at}（账目行的创建时刻）而不是草稿的 {@code posted_at}：
+     * 单用户场景下两者几乎同时发生，而 {@code created_at} 就在本表上，不必连表。
+     */
+    @Query("SELECT * FROM t_entry WHERE occurred_at >= :fromInclusive AND occurred_at < :toExclusive"
+            + " ORDER BY created_at DESC, entry_id DESC")
+    LiveData<List<EntryEntity>> observeBetweenByCreatedAt(long fromInclusive, long toExclusive);
+
     @Query("SELECT * FROM t_entry WHERE occurred_at >= :fromInclusive AND occurred_at < :toExclusive"
             + " ORDER BY occurred_at DESC, entry_id DESC")
     List<EntryEntity> findBetween(long fromInclusive, long toExclusive);

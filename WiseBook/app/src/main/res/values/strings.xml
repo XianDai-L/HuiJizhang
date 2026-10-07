@@ -23,6 +23,11 @@
     <string name="home_voice_failed">没听清，再说一次试试</string>
     <string name="home_result_open_hint">点这行看这笔账</string>
     <string name="home_pick_image">从相册选一张账单截图</string>
+    <string name="detail_evidence_image">这笔账目的原始截图</string>
+
+    <!-- 账本排序：按钮上显示的是"当前按什么排"，点一下切到另一个 -->
+    <string name="ledger_sort_occurred">按发生时间 ▾</string>
+    <string name="ledger_sort_created">按记账时间 ▾</string>
 
     <!-- 设置 -->
     <string name="settings_title">设置</string>
@@ -59,9 +64,12 @@
     <string name="confirm_merchant">商户 / 对方</string>
     <string name="confirm_questions">需要你补充的</string>
     <string name="confirm_raw_input">你原来说的</string>
-    <string name="confirm_action_post">确认并记账</string>
-    <string name="confirm_action_save">保存修改并重新校验</string>
-    <string name="confirm_action_discard">丢弃这笔</string>
+    <!-- 三个按钮并排，所以文案必须短：原来的「保存修改并重新校验」在三分之一屏宽里会被截断 -->
+    <string name="confirm_action_post">确认记账</string>
+    <string name="confirm_action_save">保存修改</string>
+    <string name="confirm_action_discard">丢弃</string>
+    <!-- 原始输入那一行的折叠标题：默认收起，点开才显示原文 -->
+    <string name="confirm_raw_toggle">你原来说的</string>
 
     <!-- 账本列表 -->
     <string name="ledger_title">账本</string>

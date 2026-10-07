@@ -5,6 +5,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 
 import android.content.Context;
 
@@ -12,6 +13,7 @@ import androidx.room.Room;
 import androidx.test.core.app.ApplicationProvider;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
+import com.wisebook.app.data.local.EvidenceStore;
 import com.wisebook.app.data.local.WiseBookDatabase;
 import com.wisebook.app.data.local.entity.DraftEntity;
 import com.wisebook.app.data.local.entity.EntryEntity;
@@ -60,6 +62,7 @@ public class DraftRepositoryTest {
     private EntryRepository entryRepository;
     private DraftRepository draftRepository;
     private CategoryTree tree;
+    private EvidenceStore evidenceStore;
 
     @Before
     public void setUp() {
@@ -71,9 +74,10 @@ public class DraftRepositoryTest {
 
         settingsRepository = new SettingsRepository(db);
         categoryRepository = new CategoryRepository(db);
-        entryRepository = new EntryRepository(db);
+        evidenceStore = new EvidenceStore(context.getFilesDir());
+        entryRepository = new EntryRepository(db, evidenceStore);
         draftRepository = new DraftRepository(db, settingsRepository, categoryRepository,
-                entryRepository, failingRuntime());
+                entryRepository, failingRuntime(), evidenceStore);
         tree = categoryRepository.loadTree(USER_ID);
     }
 
@@ -497,7 +501,8 @@ public class DraftRepositoryTest {
                 + "{\"direction\":\"expense\",\"amountCents\":700,\"merchant\":\"收款方甲\"},"
                 + "{\"direction\":\"expense\",\"amountCents\":1500,\"merchant\":\"收款方乙\"}]}";
         DraftRepository repository = new DraftRepository(db, settingsRepository,
-                categoryRepository, entryRepository, imageRuntime(transcript, payload));
+                categoryRepository, entryRepository, imageRuntime(transcript, payload),
+                evidenceStore);
 
         DraftRepository.ImageSubmitReport report = repository.submitImage(
                 new byte[]{1, 2, 3}, "image/jpeg", "相册截图");
@@ -512,14 +517,16 @@ public class DraftRepositoryTest {
         assertEquals("序号要与图里从上到下一致", 1, drafts.get(1).splitIndex);
         assertEquals(DraftSource.IMAGE, drafts.get(0).source);
         assertEquals(EvidenceType.IMAGE, drafts.get(0).evidenceType);
-        assertNull("原图不留（HANDOFF 决策 37）", drafts.get(0).evidenceRef);
+        assertNotNull("原图随草稿一起留着（HANDOFF 决策 47）", drafts.get(0).evidenceRef);
+        assertNotNull("证据文件要真的落盘，详情页才显示得出来",
+                evidenceStore.resolve(drafts.get(0).evidenceRef));
         assertEquals("转写文本留下来当原话", transcript, drafts.get(0).rawInput);
     }
 
     @Test
     public void submitImageWithoutTranscriberFailsBeforeCallingAnything() {
         DraftRepository repository = new DraftRepository(db, settingsRepository,
-                categoryRepository, entryRepository, failingRuntime());
+                categoryRepository, entryRepository, failingRuntime(), evidenceStore);
 
         DraftRepository.ImageSubmitReport report = repository.submitImage(
                 new byte[]{1, 2, 3}, "image/jpeg", "相册截图");
@@ -527,5 +534,39 @@ public class DraftRepositoryTest {
         assertFalse(report.isOk());
         assertTrue("要说清缺的是哪一家的 Key", report.summary().contains("硅基流动"));
         assertEquals("连库都不该动", 0, db.draftDao().findOpen().size());
+    }
+
+    /** 「一并删」：撤销账目之后原图不该留在磁盘上（HANDOFF 决策 47） */
+    @Test
+    public void voidingAnEntryDeletesItsEvidenceFile() {
+        String payload = "{\"drafts\":[{\"direction\":\"expense\",\"amountCents\":700,"
+                + "\"amountRaw\":\"￥7.00\",\"merchant\":\"某店\"}]}";
+        DraftRepository repository = new DraftRepository(db, settingsRepository,
+                categoryRepository, entryRepository,
+                imageRuntime("￥7.00 某店", payload), evidenceStore);
+
+        DraftRepository.ImageSubmitReport report = repository.submitImage(
+                new byte[]{1, 2, 3}, "image/jpeg", "相册截图");
+        assertTrue(report.isOk());
+
+        // 7 元、金额规则校验通过、无重复 → 默认档位下应当免确认直落；
+        // 前提不成立就直接跳过，而不是让这条用例变成"碰巧成立"
+        DraftRepository.SubmitOutcome outcome = report.reports.get(0).outcome;
+        assumeTrue("这条用例要的是直落场景", outcome.kind
+                == DraftRepository.SubmitOutcome.Kind.AUTO_POSTED);
+
+        // 免确认直落之后草稿是 POSTED，不在"待处理"里，所以按 id 取
+        DraftEntity draft = db.draftDao().findById(outcome.draftId);
+        assertNotNull(draft);
+        String evidenceRef = draft.evidenceRef;
+        assertNotNull(evidenceStore.resolve(evidenceRef));
+
+        entryRepository.voidEntry(outcome.entryId);
+
+        DraftEntity after = db.draftDao().findById(draft.draftId);
+        assertNotNull(after);
+        assertNull("草稿上的引用要清掉，否则详情页会去找一个不存在的文件",
+                after.evidenceRef);
+        assertNull("文件本身也要删掉", evidenceStore.resolve(evidenceRef));
     }
 }

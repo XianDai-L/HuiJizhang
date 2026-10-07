@@ -183,16 +183,11 @@ public class ChatViewModel extends ViewModel {
         if (!report.isOk()) {
             return UiState.error(report.summary());
         }
-        StringBuilder detail = new StringBuilder();
-        if (report.detail() != null && !report.detail().isEmpty()) {
-            detail.append(report.detail()).append('\n');
-        }
-        // 与文字入口一致，把调用次数亮出来。截图这条路是"转写 1 次 + 拆笔 N 次"：
-        // 看到"拆笔 2 次"就知道模型第一次没给出合法数组、是修正型重试救回来的
-        int attempts = report.reports.isEmpty() ? 0 : report.reports.get(0).attemptCount;
-        detail.append("转写 1 次，拆笔 ").append(attempts).append(" 次");
-
-        return UiState.result(report.summary(), detail.toString(),
+        // 首页只给结论与逐笔说明。"读图 1 次、拆笔 2 次"这类诊断信息搬到详情页了：
+        // 它是行话、又占地方，而首页最缺的就是纵向空间（实机反馈：结果行一长，
+        // 账本/报表/设置就被挤得看不见）
+        String detail = report.detail() == null ? "" : report.detail();
+        return UiState.result(report.summary(), detail,
                 report.primaryDraftId(), report.primaryEntryId(),
                 report.shouldOpenPendingList());
     }

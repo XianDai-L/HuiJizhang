@@ -15,7 +15,9 @@ import com.wisebook.app.data.local.entity.DraftEntity;
 import com.wisebook.app.domain.classify.CategoryTree;
 import com.wisebook.app.ui.DraftFormatter;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 
 /**
@@ -24,11 +26,16 @@ import java.util.function.Consumer;
  * <p>用 {@link ListAdapter} + {@link DiffUtil} 而不是裸 {@code notifyDataSetChanged}：
  * 列表项带着「用户可能正在看的那一行」这种隐含状态，整表重绘会让滚动位置与
  * 点击反馈一起跳。DiffUtil 只更新真正变了的那几行。
+ *
+ * <p>每行第三行显示的是「<b>它为什么在这儿</b>」——由 {@code PendingDraftsViewModel}
+ * 异步算好后通过 {@link #setReasons} 送进来。理由与确认页顶部那句同源
+ * （{@code DraftRepository.explainWhyNeedsConfirm}），所以两处不会各说一套。
  */
 public class DraftAdapter extends ListAdapter<DraftEntity, DraftAdapter.Holder> {
 
     private final Consumer<DraftEntity> onItemClick;
     private CategoryTree tree;
+    private Map<Long, String> reasons = Collections.emptyMap();
 
     public DraftAdapter(Consumer<DraftEntity> onItemClick) {
         super(DIFF);
@@ -38,6 +45,18 @@ public class DraftAdapter extends ListAdapter<DraftEntity, DraftAdapter.Holder> 
     /** 分类树加载完成后调用。路径变了但草稿没变，所以得手动通知重绘 */
     public void setTree(CategoryTree tree) {
         this.tree = tree;
+        if (getItemCount() > 0) {
+            notifyItemRangeChanged(0, getItemCount());
+        }
+    }
+
+    /**
+     * 每行的原因文案（键是草稿 id）。
+     *
+     * <p>同样要手动通知重绘：草稿本身没变，变的是"对它的解释"。
+     */
+    public void setReasons(Map<Long, String> reasons) {
+        this.reasons = reasons == null ? Collections.<Long, String>emptyMap() : reasons;
         if (getItemCount() > 0) {
             notifyItemRangeChanged(0, getItemCount());
         }
@@ -57,8 +76,13 @@ public class DraftAdapter extends ListAdapter<DraftEntity, DraftAdapter.Holder> 
         holder.title.setText(DraftFormatter.headline(draft, tree));
         holder.sub.setText(DraftFormatter.subline(draft));
 
-        List<String> flags = DraftFormatter.flagLabels(draft);
-        holder.reason.setText(flags.isEmpty() ? "等你确认" : String.join(" · ", flags));
+        String why = reasons.get(draft.draftId);
+        if (why == null || why.trim().isEmpty()) {
+            // 算不出来时退回存疑标签（比什么都不说强）；标签也没有才说"等你确认"
+            List<String> flags = DraftFormatter.flagLabels(draft);
+            why = flags.isEmpty() ? "等你确认" : String.join(" · ", flags);
+        }
+        holder.reason.setText(why);
         holder.itemView.setOnClickListener(view -> onItemClick.accept(draft));
     }
 

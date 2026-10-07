@@ -12,6 +12,7 @@ import androidx.room.Room;
 import androidx.test.core.app.ApplicationProvider;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
+import com.wisebook.app.data.local.EvidenceStore;
 import com.wisebook.app.data.local.WiseBookDatabase;
 import com.wisebook.app.data.local.entity.CategoryEntity;
 import com.wisebook.app.data.local.entity.DraftEntity;
@@ -65,7 +66,7 @@ public class EntryRepositoryTest {
                 .build();
         CategorySeeder.seedIfEmpty(db);
 
-        entryRepository = new EntryRepository(db);
+        entryRepository = new EntryRepository(db, new EvidenceStore(context.getFilesDir()));
         reportRepository = new ReportRepository(db);
         tree = new CategoryRepository(db).loadTree(USER_ID);
     }

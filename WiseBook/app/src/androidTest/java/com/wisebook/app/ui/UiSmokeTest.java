@@ -347,14 +347,16 @@ public class UiSmokeTest {
                     Thread.sleep(100L);
                 }
             }
-            assertTrue("「输入解析」默认就该显示你原来说的那句话", rawShown);
+            assertTrue("原话要真的填进视图，展开时才看得到", rawShown);
 
             scenario.onActivity(activity -> {
-                assertEquals("解析详情默认收起",
-                        View.GONE, activity.findViewById(R.id.parse_details).getVisibility());
+                // 整块折叠（P3 实机反馈）：截图入口的原文可能是一整页转写文本，
+                // 展开着会把四个字段区和操作按钮顶到屏幕外
+                assertEquals("「输入解析」默认整块收起",
+                        View.GONE, activity.findViewById(R.id.parse_panel).getVisibility());
                 activity.findViewById(R.id.btn_toggle_parse).performClick();
                 assertEquals("点一下才展开",
-                        View.VISIBLE, activity.findViewById(R.id.parse_details).getVisibility());
+                        View.VISIBLE, activity.findViewById(R.id.parse_panel).getVisibility());
             });
         }
     }

@@ -2,6 +2,7 @@ package com.wisebook.app.data;
 
 import androidx.lifecycle.LiveData;
 
+import com.wisebook.app.data.local.EvidenceStore;
 import com.wisebook.app.data.local.WiseBookDatabase;
 import com.wisebook.app.data.local.entity.DraftEntity;
 import com.wisebook.app.data.local.entity.SettingEntity;
@@ -117,15 +118,17 @@ public final class DraftRepository {
     private final CategoryRepository categoryRepository;
     private final EntryRepository entryRepository;
     private final LlmRuntime llmRuntime;
+    private final EvidenceStore evidenceStore;
     private final ZoneId zone;
 
     public DraftRepository(WiseBookDatabase database,
                            SettingsRepository settingsRepository,
                            CategoryRepository categoryRepository,
                            EntryRepository entryRepository,
-                           LlmRuntime llmRuntime) {
+                           LlmRuntime llmRuntime,
+                           EvidenceStore evidenceStore) {
         this(database, settingsRepository, categoryRepository, entryRepository, llmRuntime,
-                ZoneId.systemDefault());
+                evidenceStore, ZoneId.systemDefault());
     }
 
     /** 允许注入时区，便于测试固定「现在」 */
@@ -134,12 +137,14 @@ public final class DraftRepository {
                            CategoryRepository categoryRepository,
                            EntryRepository entryRepository,
                            LlmRuntime llmRuntime,
+                           EvidenceStore evidenceStore,
                            ZoneId zone) {
         this.database = database;
         this.settingsRepository = settingsRepository;
         this.categoryRepository = categoryRepository;
         this.entryRepository = entryRepository;
         this.llmRuntime = llmRuntime;
+        this.evidenceStore = evidenceStore;
         this.zone = zone;
     }
 
@@ -353,12 +358,28 @@ public final class DraftRepository {
             return ImageSubmitReport.failed(parsed.message());
         }
 
+        // 解析成功之后才落盘原图：没有草稿就没有引用它的地方，
+        // 先存只会留下谁也找不到的孤儿文件（与"一并删"是同一条原则）
+        String evidenceRef = evidenceStore.saveImage(imageBytes, mimeType, batchName(now));
+
         List<SubmitReport> reports = new ArrayList<>();
         for (DraftEntity draft : parsed.drafts()) {
+            // 同一张图的几笔共享同一个证据文件：用户上传的是一次，不是一笔传一张
+            draft.evidenceRef = evidenceRef;
             reports.add(persist(draft, settings, tree, parsed.attemptCount(),
                     parsed.firstAttemptSucceeded(), parsed.rawPayload()));
         }
         return ImageSubmitReport.of(reports);
+    }
+
+    /**
+     * 证据文件的名字，与 {@code ImageDraftParser} 生成的批次标签同源。
+     *
+     * <p>两者用同一个「现在」派生，所以文件名和 {@code batch_id} 能对上——
+     * 排查时看到 {@code IMG-1790000000000} 就知道它们是同一次上传。
+     */
+    private String batchName(LocalDateTime now) {
+        return "IMG-" + now.atZone(zone).toInstant().toEpochMilli();
     }
 
     /**
@@ -515,6 +536,9 @@ public final class DraftRepository {
             draft.status = DraftStateMachine.apply(draft.status, DraftTransition.DISCARD);
             draft.clarifyQuestions = null;
             draft.updatedAt = System.currentTimeMillis();
+            // 丢弃的草稿不会再被处理，它的原图也就没有被引用的地方了（决策 47：一并删）
+            evidenceStore.delete(draft.evidenceRef);
+            draft.evidenceRef = null;
             database.draftDao().update(draft);
             return true;
         };
@@ -565,6 +589,16 @@ public final class DraftRepository {
      *
      * @return 需要确认的原因；若按当前档位其实已可免确认，返回空串
      */
+    /**
+     * 当前设置。给界面侧计算"为什么需要确认"这类解释文案用。
+     *
+     * <p>刻意不把 {@link #explainWhyNeedsConfirm} 改成自己读设置：待处理列表要一次解释一屏草稿，
+     * 设置只该读一次——为 20 行各查一遍同一个单行表是白费力气。
+     */
+    public SettingEntity loadSettings() {
+        return settingsRepository.loadOrInit(WiseBookDatabase.DEFAULT_USER_ID);
+    }
+
     public String explainWhyNeedsConfirm(DraftEntity draft, SettingEntity settings) {
         boolean duplicate = draft.dedupeKey != null
                 && database.entryDao().countByDedupeKey(draft.dedupeKey) > 0;

@@ -2,6 +2,7 @@ package com.wisebook.app.data;
 
 import androidx.lifecycle.LiveData;
 
+import com.wisebook.app.data.local.EvidenceStore;
 import com.wisebook.app.data.local.WiseBookDatabase;
 import com.wisebook.app.data.local.entity.DraftEntity;
 import com.wisebook.app.data.local.entity.EntryEntity;
@@ -79,9 +80,11 @@ public final class EntryRepository {
     }
 
     private final WiseBookDatabase database;
+    private final EvidenceStore evidenceStore;
 
-    public EntryRepository(WiseBookDatabase database) {
+    public EntryRepository(WiseBookDatabase database, EvidenceStore evidenceStore) {
         this.database = database;
+        this.evidenceStore = evidenceStore;
     }
 
     /**
@@ -157,6 +160,12 @@ public final class EntryRepository {
         return database.entryDao().observeBetween(fromInclusive, toExclusive);
     }
 
+    /** 同一批账目，按记账时间倒序；用于账本页的排序切换 */
+    public LiveData<List<EntryEntity>> observeBetweenByCreatedAt(long fromInclusive,
+                                                                long toExclusive) {
+        return database.entryDao().observeBetweenByCreatedAt(fromInclusive, toExclusive);
+    }
+
     /** 某个月区间内的账目明细。<b>阻塞</b> */
     public List<EntryEntity> findBetween(long fromInclusive, long toExclusive) {
         return database.entryDao().findBetween(fromInclusive, toExclusive);
@@ -210,6 +219,12 @@ public final class EntryRepository {
         DraftEntity draft = database.draftDao().findById(entry.draftId);
         database.entryDao().delete(entry);
         if (draft != null && DraftStateMachine.canApply(draft.status, DraftTransition.VOID)) {
+            // 原图跟着这笔账一起走（HANDOFF 决策 47）。撤销之后这笔账不再存在于任何
+            // 列表与报表里，留着文件只会变成谁也找不到的孤儿——而"一并删"正是用户的要求。
+            // 草稿本身仍然保留：原话、转写文本、模型输出这些可解释性信息不受影响。
+            evidenceStore.delete(draft.evidenceRef);
+            draft.evidenceRef = null;
+
             draft.status = DraftStateMachine.apply(draft.status, DraftTransition.VOID);
             draft.entryId = null;
             draft.postedAt = null;

@@ -48,9 +48,6 @@ public final class SettingsRepository {
     /** 默认「标准」方案：D1-A §2 的二级清单已定稿，说明它是主推形态 */
     public static final CategoryScheme DEFAULT_CATEGORY_SCHEME = CategoryScheme.STANDARD;
 
-    /** 商户映射表版本，对应 D1-A §3 的 v1 清单 */
-    public static final int CURRENT_MERCHANT_MAP_VERSION = 1;
-
     /** 约数词典版本，对应 D1-A §5 的 v1 清单 */
     public static final int CURRENT_APPROX_DICT_VERSION = 1;
 
@@ -93,7 +90,6 @@ public final class SettingsRepository {
         settings.largeThresholdCents = DEFAULT_LARGE_THRESHOLD_CENTS;
         settings.clarifyMaxRounds = DEFAULT_CLARIFY_MAX_ROUNDS;
         settings.categoryScheme = DEFAULT_CATEGORY_SCHEME;
-        settings.merchantMapVersion = CURRENT_MERCHANT_MAP_VERSION;
         settings.approxDictVersion = CURRENT_APPROX_DICT_VERSION;
         return settings;
     }

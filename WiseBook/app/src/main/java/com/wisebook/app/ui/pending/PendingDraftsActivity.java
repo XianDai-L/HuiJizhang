@@ -58,7 +58,11 @@ public class PendingDraftsActivity extends AppCompatActivity {
             boolean isEmpty = drafts == null || drafts.isEmpty();
             empty.setVisibility(isEmpty ? View.VISIBLE : View.GONE);
             list.setVisibility(isEmpty ? View.GONE : View.VISIBLE);
+            // 列表一变就重算"为什么在这儿"：理由要跟着行一起变，
+            // 否则会出现"这一笔已经不用确认了，行上还写着旧原因"
+            viewModel.explainAll(drafts);
         });
+        viewModel.reasons().observe(this, adapter::setReasons);
         viewModel.tree().observe(this, adapter::setTree);
 
         viewModel.loadTree();

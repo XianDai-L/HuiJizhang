@@ -1,26 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 详情页的一行：左边固定宽度的标签，右边可换行的内容 -->
+<!--
+  详情页的一格：标签在上、内容在下。
+
+  与 item_detail_row 的区别是它是给「一行两列」用的——半屏宽的格子里，
+  「左标签右内容」会把内容挤成一条细缝（长值只能不停换行），标签移到上面反而更省高度。
+-->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="horizontal"
-    android:paddingTop="7dp"
-    android:paddingBottom="7dp">
+    android:orientation="vertical"
+    android:paddingTop="6dp"
+    android:paddingBottom="6dp">
 
     <TextView
         android:id="@+id/row_label"
-        android:layout_width="86dp"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textColor="@color/muted"
-        android:textSize="13sp"
+        android:textSize="12sp"
         tools:text="规则校验" />
 
     <TextView
         android:id="@+id/row_value"
-        android:layout_width="0dp"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_weight="1"
+        android:layout_marginTop="1dp"
         android:textSize="14sp"
         tools:text="通过（规则重算与模型一致）" />
 

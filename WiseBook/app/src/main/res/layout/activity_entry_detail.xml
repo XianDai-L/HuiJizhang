@@ -18,7 +18,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="20dp">
+        android:padding="14dp">
 
         <TextView
             android:text="@string/detail_title"
@@ -31,8 +31,8 @@
             android:id="@+id/amount"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
-            android:textSize="34sp"
+            android:layout_marginTop="2dp"
+            android:textSize="28sp"
             android:textStyle="bold"
             tools:text="283.40 元" />
 
@@ -40,65 +40,89 @@
             android:id="@+id/direction_category"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
+            android:layout_marginTop="2dp"
             android:textSize="15sp"
             tools:text="支出 · 娱乐 &gt; 游戏" />
 
-        <!-- ================= 输入解析 ================= -->
+        <!--
+          ================= 输入解析（整块默认收起） =================
 
-        <TextView
-            android:layout_width="wrap_content"
+          收起时只留一行标题：截图入口的原文可能是一整页账单的转写文本，
+          展开着会把下面四个字段区和操作按钮全顶到屏幕外。想看的时候点一下标题。
+        -->
+        <Button
+            android:id="@+id/btn_toggle_parse"
+            style="?android:attr/borderlessButtonStyle"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="28dp"
+            android:layout_marginTop="10dp"
+            android:gravity="start|center_vertical"
+            android:minWidth="0dp"
+            android:paddingStart="0dp"
+            android:paddingEnd="0dp"
             android:text="@string/detail_section_input"
             android:textSize="14sp"
             android:textStyle="bold" />
 
-        <TextView
-            android:id="@+id/raw_label"
+        <LinearLayout
+            android:id="@+id/parse_panel"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:textColor="@color/muted"
-            android:textSize="12sp"
-            tools:text="你原来说的" />
+            android:orientation="vertical"
+            android:visibility="gone">
 
-        <TextView
-            android:id="@+id/raw_text"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
-            android:textSize="15sp"
-            tools:text="我买游戏花了283.4" />
+            <!--
+              原图。截图入口才有（文字/语音入口没有证据文件）。
+              放在最前面是因为它是最强的解释：用户一眼就能确认"这笔就是从这张图来的"。
+            -->
+            <ImageView
+                android:id="@+id/evidence_image"
+                android:layout_width="match_parent"
+                android:layout_height="180dp"
+                android:layout_marginTop="6dp"
+                android:background="@color/pane_background"
+                android:contentDescription="@string/detail_evidence_image"
+                android:scaleType="fitCenter"
+                android:visibility="gone"
+                tools:src="@tools:sample/backgrounds/scenic" />
 
-        <Button
-            android:id="@+id/btn_toggle_parse"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="@string/detail_expand"
-            android:textSize="14sp" />
+            <TextView
+                android:id="@+id/raw_label"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:textColor="@color/muted"
+                android:textSize="12sp"
+                tools:text="你原来说的" />
 
-        <TextView
-            android:id="@+id/parse_details"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:background="@color/pane_background"
-            android:fontFamily="monospace"
-            android:lineSpacingExtra="2dp"
-            android:padding="12dp"
-            android:textIsSelectable="true"
-            android:textSize="12sp"
-            android:visibility="gone"
-            tools:text="模型    deepseek:deepseek-chat" />
+            <TextView
+                android:id="@+id/raw_text"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:textSize="14sp"
+                tools:text="我买游戏花了283.4" />
 
-        <!-- ================= 四个字段区 ================= -->
+            <TextView
+                android:id="@+id/parse_details"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:background="@color/pane_background"
+                android:fontFamily="monospace"
+                android:lineSpacingExtra="2dp"
+                android:padding="10dp"
+                android:textIsSelectable="true"
+                android:textSize="12sp"
+                tools:text="模型    deepseek:deepseek-chat" />
+        </LinearLayout>
+
+        <!-- ================= 四个字段区（每个容器内部按两列排） ================= -->
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="28dp"
+            android:layout_marginTop="14dp"
             android:text="@string/detail_section_amount"
             android:textSize="14sp"
             android:textStyle="bold" />
@@ -112,7 +136,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="22dp"
+            android:layout_marginTop="14dp"
             android:text="@string/detail_section_time"
             android:textSize="14sp"
             android:textStyle="bold" />
@@ -126,7 +150,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="22dp"
+            android:layout_marginTop="14dp"
             android:text="@string/detail_section_fields"
             android:textSize="14sp"
             android:textStyle="bold" />
@@ -140,7 +164,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="22dp"
+            android:layout_marginTop="14dp"
             android:text="@string/detail_section_posting"
             android:textSize="14sp"
             android:textStyle="bold" />
@@ -155,26 +179,36 @@
             android:id="@+id/status"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:textSize="14sp" />
-
-        <!-- ================= 动作 ================= -->
-
-        <Button
-            android:id="@+id/btn_correct"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
-            android:text="@string/ledger_action_correct"
-            android:textSize="16sp" />
-
-        <Button
-            android:id="@+id/btn_void"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
             android:layout_marginTop="10dp"
-            android:text="@string/ledger_action_void"
-            android:textSize="16sp" />
+            android:textSize="13sp" />
+
+        <!-- ================= 动作（并排：两个按钮各占一行会把它们推到屏幕之外） ================= -->
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/btn_correct"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:maxLines="1"
+                android:text="@string/ledger_action_correct"
+                android:textSize="15sp" />
+
+            <Button
+                android:id="@+id/btn_void"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_weight="1"
+                android:maxLines="1"
+                android:text="@string/ledger_action_void"
+                android:textSize="15sp" />
+        </LinearLayout>
 
     </LinearLayout>
 

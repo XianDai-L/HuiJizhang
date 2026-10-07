@@ -40,7 +40,13 @@ public class SettingEntity {
     @ColumnInfo(name = "category_scheme")
     public CategoryScheme categoryScheme;
 
-    /** 商户映射表版本（D1-A §3） */
+    /**
+     * 商户映射表版本。**已废弃**（2026-10-07，HANDOFF 决策 46）：映射表整体删除了，
+     * 这个字段不再有使用者。
+     *
+     * <p>列<b>刻意保留</b>：删列要配一版迁移，而它只是一个 int、不占空间。
+     * 迁移是这个项目最容易出错的环节（HANDOFF §8-17），能不动就不动。
+     */
     @ColumnInfo(name = "merchant_map_version")
     public int merchantMapVersion;
 

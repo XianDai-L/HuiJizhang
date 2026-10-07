@@ -104,6 +104,10 @@
       解析结果一行。点它进「账目详情页」看底牌（模型给了什么、分类是怎么定的、
       原始返回长什么样）——这一页已经存在，所以首页不再挂「AI 处理详情」面板。
       没有地方可去时（解析失败）就不可点。
+
+      maxLines + ellipsize 是实机反馈加的：这一段在 ScrollView 之外、又被 weight 抢空间的
+      上方内容夹着，文本一多就把它压到几乎看不见——观感上"账本/报表/设置被顶没了"。
+      限成 3 行（结论 + 一句说明 + 提示）后，上方内容始终留得住；被截掉的细节点进去看。
     -->
     <TextView
         android:id="@+id/parse_result"
@@ -111,7 +115,9 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
         android:background="?android:attr/selectableItemBackground"
+        android:ellipsize="end"
         android:lineSpacingExtra="3dp"
+        android:maxLines="3"
         android:padding="12dp"
         android:textSize="15sp"
         android:visibility="gone"
