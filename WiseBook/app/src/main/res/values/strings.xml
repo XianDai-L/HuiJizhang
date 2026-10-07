@@ -14,20 +14,20 @@
     <string name="home_examples">试试：「今天打车 28」「昨天下午买菜三百五」「上周三请客 260」</string>
     <string name="home_send">发送</string>
     <string name="home_parsing">正在解析…（模型响应通常几秒，最长等 2 分钟）</string>
-    <string name="home_switch_to_voice">切换到语音输入</string>
-    <string name="home_switch_to_text">切换到文字输入</string>
-    <string name="home_speak_hint">点一下开始说话</string>
-    <string name="home_listening">正在听…</string>
-    <string name="home_voice_unavailable">这台设备上没有可用的语音识别，直接打字吧</string>
-    <string name="home_voice_permission_denied">没有麦克风权限，没法用语音。到系统设置里给「慧记」开一下</string>
-    <string name="home_voice_failed">没听清，再说一次试试</string>
+    <!--
+      语音输入已整体移除（P3 再做，见 HANDOFF 决策 49）。移除而不是留着半截，有两个原因：
+      一是它在真机上直接报"这台设备上没有可用的语音识别"，留着就是个坏入口；
+      二是语音的完整形态是"录一段留证"（D1 的 evidence_type=VOICE），
+      那时连同录音一起接进来，比现在接半截、P3 再补全要省事。
+    -->
     <string name="home_result_open_hint">点这行看这笔账</string>
     <string name="home_pick_image">从相册选一张账单截图</string>
     <string name="detail_evidence_image">这笔账目的原始截图</string>
 
-    <!-- 账本排序：按钮上显示的是"当前按什么排"，点一下切到另一个 -->
-    <string name="ledger_sort_occurred">按发生时间 ▾</string>
-    <string name="ledger_sort_created">按记账时间 ▾</string>
+    <!-- 账本排序：按钮上显示的是"当前按什么排"，点一下切到另一个。
+         箭头用 ▼（U+25BC 实心大三角）而不是 ▾（U+25BE 小三角）：后者在 14sp 下几乎看不出形状 -->
+    <string name="ledger_sort_occurred">按发生时间 ▼</string>
+    <string name="ledger_sort_created">按记账时间 ▼</string>
 
     <!-- 设置 -->
     <string name="settings_title">设置</string>

@@ -1,15 +1,8 @@
 package com.wisebook.app.ui.ledger;
 
-import android.Manifest;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
-import android.speech.RecognitionListener;
-import android.speech.RecognizerIntent;
-import android.speech.SpeechRecognizer;
-import android.text.TextUtils;
-import android.util.Log;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
@@ -36,9 +29,6 @@ import com.wisebook.app.ui.pending.PendingDraftsActivity;
 import com.wisebook.app.ui.report.ReportActivity;
 import com.wisebook.app.ui.settings.SettingsActivity;
 
-import java.util.ArrayList;
-import java.util.Locale;
-
 /**
  * 首页 = 记账工作台。
  *
@@ -46,15 +36,13 @@ import java.util.Locale;
  * 底部那条输入栏是 P1 唯一的主入口，说完一句话就在<b>同一页</b>看到结果，
  * 不再跳一次对话页。上面的账本 / 报表 / 设置仍然是入口，只是退到了上方。
  *
- * <p>界面层只做三件事：把输入交给 {@link ChatViewModel}、把状态渲染出来、
- * 把语音识别的文字填回输入框。解析、落库、档位判定全在 ViewModel 与仓储层里。
+ * <p>界面层只做三件事：把输入（文字或截图）交给 {@link ChatViewModel}、把状态渲染出来、
+ * 把选中的图读成字节交给它。解析、落库、档位判定全在 ViewModel 与仓储层里。
  *
  * <p>待处理数量走 LiveData 观察数据库：从确认流程回来、或者自动落账之后，
  * 数字会自己刷新，不需要在 {@code onResume} 里手动再查一遍。
  */
 public class MainActivity extends AppCompatActivity {
-
-    private static final String TAG = "MainActivity";
 
     /** 提升成字段是为了选图：读字节要提交到应用唯一的数据库线程，回调里要用到它 */
     private WiseBookApp app;
@@ -62,32 +50,10 @@ public class MainActivity extends AppCompatActivity {
 
     private TextView openDraftCount;
     private EditText input;
-    private TextView speak;
     private TextView parseResult;
     private TextView parsingHint;
     private ImageButton pickImageButton;
-    private ImageButton voiceModeButton;
     private ImageButton sendButton;
-
-    /** 语音模式：输入框换成「点一下开始说话」 */
-    private boolean voiceMode;
-
-    private SpeechRecognizer recognizer;
-    /** 正在听。用于忽略"回来时已经不在听"的迟到回调 */
-    private boolean listening;
-
-    /**
-     * 录音权限的申请。用 ActivityResult API 而不是 {@code onRequestPermissionsResult}：
-     * 后者靠 requestCode 做分支，加第二个权限时就要小心编码碰撞。
-     */
-    private final ActivityResultLauncher<String> recordPermissionLauncher =
-            registerForActivityResult(new ActivityResultContracts.RequestPermission(), granted -> {
-                if (granted) {
-                    enterVoiceMode();
-                } else {
-                    showTip(getString(R.string.home_voice_permission_denied));
-                }
-            });
 
     /**
      * 选图。用系统照片选择器（D2 §7 已指定这条路），<b>零权限</b>：
@@ -119,11 +85,9 @@ public class MainActivity extends AppCompatActivity {
 
         openDraftCount = findViewById(R.id.open_draft_count);
         input = findViewById(R.id.input);
-        speak = findViewById(R.id.speak);
         parseResult = findViewById(R.id.parse_result);
         parsingHint = findViewById(R.id.parsing_hint);
         pickImageButton = findViewById(R.id.btn_pick_image);
-        voiceModeButton = findViewById(R.id.btn_voice_mode);
         sendButton = findViewById(R.id.btn_send);
 
         pickImageButton.setOnClickListener(view -> pickImage());
@@ -137,9 +101,6 @@ public class MainActivity extends AppCompatActivity {
             }
             return false;
         });
-        voiceModeButton.setOnClickListener(view -> toggleVoiceMode());
-        speak.setOnClickListener(view -> startListening());
-
         findViewById(R.id.btn_ledger).setOnClickListener(
                 view -> startActivity(new Intent(this, LedgerActivity.class)));
         findViewById(R.id.btn_report).setOnClickListener(
@@ -215,7 +176,6 @@ public class MainActivity extends AppCompatActivity {
         // 用户完全可以趁着等结果把下一句先打出来。
         // （原来锁整个输入框会顺手把键盘收掉，等结果回来还得再点一次输入框）
         sendButton.setEnabled(!state.parsing);
-        speak.setEnabled(!state.parsing && !listening);
         // 相机也一起锁上：上一次选图还在解析时又选一张，会各自落一批草稿，
         // 而用户看到的是"我明明只选了一次"
         pickImageButton.setEnabled(!state.parsing);
@@ -266,158 +226,6 @@ public class MainActivity extends AppCompatActivity {
         parseResult.setOnClickListener(null);
     }
 
-    // ------------------------------------------------------------------ 语音
-
-    private void toggleVoiceMode() {
-        if (voiceMode) {
-            enterTextMode();
-            return;
-        }
-        if (!SpeechRecognizer.isRecognitionAvailable(this)) {
-            // 这台设备连识别服务都没有，切过去只会让人对着麦克风说话而没有任何反应
-            showTip(getString(R.string.home_voice_unavailable));
-            return;
-        }
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
-                == PackageManager.PERMISSION_GRANTED) {
-            enterVoiceMode();
-        } else {
-            recordPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO);
-        }
-    }
-
-    private void enterVoiceMode() {
-        voiceMode = true;
-        input.setVisibility(View.GONE);
-        speak.setVisibility(View.VISIBLE);
-        speak.setText(R.string.home_speak_hint);
-        voiceModeButton.setImageResource(R.drawable.ic_keyboard);
-        voiceModeButton.setContentDescription(getString(R.string.home_switch_to_text));
-        hideKeyboard();
-    }
-
-    private void enterTextMode() {
-        voiceMode = false;
-        stopListening();
-        input.setVisibility(View.VISIBLE);
-        speak.setVisibility(View.GONE);
-        voiceModeButton.setImageResource(R.drawable.ic_mic);
-        voiceModeButton.setContentDescription(getString(R.string.home_switch_to_voice));
-    }
-
-    /**
-     * 开始听。
-     *
-     * <p>用系统自带的 {@link SpeechRecognizer}（识别文字直接回填输入框），
-     * 而不是自己录一段音频去调接口：识别在设备上完成、不走我们的 Key，
-     * 也就不会占用模型额度；而且识别结果是<b>文字</b>，正好复用整条文本解析管线
-     * ——语音接进来没有新增任何一条解析路径。
-     */
-    private void startListening() {
-        if (listening) {
-            return;
-        }
-        if (recognizer == null && !ensureRecognizer()) {
-            return;
-        }
-        Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
-                .putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,
-                        RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-                .putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.CHINA.toLanguageTag())
-                .putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
-                .putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false);
-
-        listening = true;
-        speak.setText(R.string.home_listening);
-        speak.setEnabled(false);
-        recognizer.startListening(intent);
-    }
-
-    private boolean ensureRecognizer() {
-        if (!SpeechRecognizer.isRecognitionAvailable(this)) {
-            return false;
-        }
-        recognizer = SpeechRecognizer.createSpeechRecognizer(this);
-        recognizer.setRecognitionListener(new RecognitionListener() {
-            @Override
-            public void onResults(Bundle results) {
-                applySpeech(results);
-            }
-
-            @Override
-            public void onError(int error) {
-                Log.w(TAG, "语音识别失败，错误码 " + error);
-                finishListening();
-                showTip(getString(R.string.home_voice_failed));
-            }
-
-            // 下面这些回调不影响结果，只用来把"正在听"这件事收尾
-            @Override
-            public void onReadyForSpeech(Bundle params) {
-            }
-
-            @Override
-            public void onBeginningOfSpeech() {
-            }
-
-            @Override
-            public void onRmsChanged(float rmsdB) {
-            }
-
-            @Override
-            public void onBufferReceived(byte[] buffer) {
-            }
-
-            @Override
-            public void onEndOfSpeech() {
-            }
-
-            @Override
-            public void onPartialResults(Bundle partialResults) {
-            }
-
-            @Override
-            public void onEvent(int eventType, Bundle params) {
-            }
-        });
-        return true;
-    }
-
-    /**
-     * 识别结果落进输入框，<b>然后切回文字模式</b>。
-     *
-     * <p>刻意不自动提交：识别有错字的风险（同音字、数字尤其），
-     * 让它先躺进输入框，用户扫一眼就能改——这是最便宜的一道纠错，
-     * 比事后在确认页上纠便宜得多。
-     */
-    private void applySpeech(Bundle results) {
-        finishListening();
-        ArrayList<String> texts = results == null ? null
-                : results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
-        String text = texts == null || texts.isEmpty() ? "" : texts.get(0);
-        if (TextUtils.isEmpty(text)) {
-            showTip(getString(R.string.home_voice_failed));
-            return;
-        }
-        input.setText(text);
-        input.setSelection(text.length());
-        enterTextMode();
-        input.requestFocus();
-    }
-
-    private void finishListening() {
-        listening = false;
-        speak.setText(R.string.home_speak_hint);
-        speak.setEnabled(true);
-    }
-
-    private void stopListening() {
-        if (recognizer != null && listening) {
-            recognizer.cancel();
-        }
-        finishListening();
-    }
-
     // ------------------------------------------------------------------ 杂项
 
     private void hideKeyboard() {
@@ -431,13 +239,4 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    @Override
-    protected void onDestroy() {
-        if (recognizer != null) {
-            // 不释放会漏一个 binder 连接，而且下次进来再 create 会报错
-            recognizer.destroy();
-            recognizer = null;
-        }
-        super.onDestroy();
-    }
 }

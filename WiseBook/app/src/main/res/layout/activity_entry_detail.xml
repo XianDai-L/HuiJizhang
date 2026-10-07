@@ -45,10 +45,12 @@
             tools:text="支出 · 娱乐 &gt; 游戏" />
 
         <!--
-          ================= 输入解析（整块默认收起） =================
-
           收起时只留一行标题：截图入口的原文可能是一整页账单的转写文本，
           展开着会把下面四个字段区和操作按钮全顶到屏幕外。想看的时候点一下标题。
+
+          textColor 是实机反馈加的，**不能删**：borderlessButtonStyle 的文字色由主题决定，
+          默认给的是随主题走的主色（浅到底色上几乎看不见，用户原话是"字体颜色为白色"），
+          而这个按钮原先没有显式颜色。字形也从 ▸ 换成 ▶（实心大三角），小三角不显眼。
         -->
         <Button
             android:id="@+id/btn_toggle_parse"
@@ -61,7 +63,8 @@
             android:paddingStart="0dp"
             android:paddingEnd="0dp"
             android:text="@string/detail_section_input"
-            android:textSize="14sp"
+            android:textColor="@color/muted"
+            android:textSize="15sp"
             android:textStyle="bold" />
 
         <LinearLayout

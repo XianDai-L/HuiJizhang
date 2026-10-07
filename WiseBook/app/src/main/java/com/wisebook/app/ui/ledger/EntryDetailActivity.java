@@ -102,6 +102,9 @@ public class EntryDetailActivity extends AppCompatActivity {
             parseExpanded = !parseExpanded;
             applyParseState();
         });
+        // 初始也要走一遍：箭头（▶）只有在 applyParseState 里才拼得上去，
+        // 漏掉这一句，收起状态就只剩「输入解析」四个字，看不出这行能点（实机反馈）
+        applyParseState();
         findViewById(R.id.btn_correct).setOnClickListener(view -> pickCategory());
         findViewById(R.id.btn_void).setOnClickListener(view -> confirmVoid());
 
@@ -173,8 +176,8 @@ public class EntryDetailActivity extends AppCompatActivity {
     private void applyParseState() {
         parsePanel.setVisibility(parseExpanded ? View.VISIBLE : View.GONE);
         toggleParse.setText(parseExpanded
-                ? getString(R.string.detail_section_input) + " ▾"
-                : getString(R.string.detail_section_input) + " ▸");
+                ? getString(R.string.detail_section_input) + " ▼"
+                : getString(R.string.detail_section_input) + " ▶");
     }
 
     /**

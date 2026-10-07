@@ -6,7 +6,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
-import android.Manifest;
 import android.content.Context;
 import android.view.View;
 import android.widget.Button;
@@ -18,7 +17,6 @@ import androidx.recyclerview.widget.RecyclerView;
 import androidx.test.core.app.ActivityScenario;
 import androidx.test.core.app.ApplicationProvider;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
-import androidx.test.platform.app.InstrumentationRegistry;
 
 import com.wisebook.app.BuildConfig;
 import com.wisebook.app.R;
@@ -71,7 +69,7 @@ public class UiSmokeTest {
             scenario.onActivity(activity -> {
                 assertNotNull("首页应有输入框", activity.findViewById(R.id.input));
                 assertNotNull("首页应有发送按钮", activity.findViewById(R.id.btn_send));
-                assertNotNull("首页应有语音切换", activity.findViewById(R.id.btn_voice_mode));
+                assertNotNull("首页应有截图入口", activity.findViewById(R.id.btn_pick_image));
                 assertNotNull("首页应有账本入口", activity.findViewById(R.id.btn_ledger));
                 assertNotNull("首页应有设置入口", activity.findViewById(R.id.btn_settings));
 
@@ -84,29 +82,8 @@ public class UiSmokeTest {
         }
     }
 
-    @Test
-    public void voiceModeTogglesBetweenTypingAndSpeaking() {
-        // 语音切换是个"两个控件互斥显示"的开关。它切错了页面不会报错，
-        // 只会让用户对着一个空白的输入区发呆——所以必须把它钉住
-        grantRecordPermission();
-        try (ActivityScenario<MainActivity> scenario = ActivityScenario.launch(MainActivity.class)) {
-            scenario.onActivity(activity -> {
-                View input = activity.findViewById(R.id.input);
-                View speak = activity.findViewById(R.id.speak);
-                assertEquals("默认是文字输入", View.VISIBLE, input.getVisibility());
-                assertEquals(View.GONE, speak.getVisibility());
-
-                activity.findViewById(R.id.btn_voice_mode).performClick();
-                assertEquals("切到语音后输入框该藏起来", View.GONE, input.getVisibility());
-                assertEquals("切到语音后该出现「点一下开始说话」",
-                        View.VISIBLE, speak.getVisibility());
-
-                activity.findViewById(R.id.btn_voice_mode).performClick();
-                assertEquals("再点一下切回文字", View.VISIBLE, input.getVisibility());
-                assertEquals(View.GONE, speak.getVisibility());
-            });
-        }
-    }
+    // 语音输入已于 2026-10-07 整体移除（P3 再做，HANDOFF 决策 49），
+    // 相关用例（voiceModeTogglesBetweenTypingAndSpeaking）与录音授权辅助方法一并删除。
 
     @Test
     public void sendingClearsTheInput() {
@@ -184,19 +161,6 @@ public class UiSmokeTest {
                 || !BuildConfig.SILICONFLOW_API_KEY.isEmpty()
                 || WiseBookApp.from(ApplicationProvider.getApplicationContext())
                         .llmConfigStore().hasApiKey();
-    }
-
-    /**
-     * 直接给应用授录音权限。
-     *
-     * <p>不这么做的话，点语音按钮会弹出<b>系统权限框</b>——它挡住的是后面的用例，
-     * 而不只是这一条，测试结果会变得莫名其妙。用 UiAutomation 授权相当于
-     * 替用户先把权限点掉，被测代码走的仍是真实的「已授权」分支。
-     */
-    private static void grantRecordPermission() {
-        InstrumentationRegistry.getInstrumentation().getUiAutomation().grantRuntimePermission(
-                ApplicationProvider.getApplicationContext().getPackageName(),
-                Manifest.permission.RECORD_AUDIO);
     }
 
     @Test

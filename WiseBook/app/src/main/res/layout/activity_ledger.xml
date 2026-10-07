@@ -31,6 +31,9 @@
           排序切换。做成一个按钮而不是下拉菜单：这里只有两个选项，
           点一下就切比"点开菜单再选"少一步；按钮上写的是"当前按什么排"，
           所以不用先点一次才知道现在是什么口径。
+
+          textColor 是实机反馈加的，**不能删**：borderlessButtonStyle 的文字色由主题决定，
+          默认给的是随主题走的主色（浅到底色上几乎看不见），而这个按钮原先没有显式颜色。
         -->
         <Button
             android:id="@+id/btn_sort"
@@ -40,8 +43,9 @@
             android:minWidth="0dp"
             android:paddingStart="8dp"
             android:paddingEnd="0dp"
-            android:textSize="13sp"
-            tools:text="按发生时间 ▾" />
+            android:textColor="@color/muted"
+            android:textSize="14sp"
+            tools:text="按发生时间 ▼" />
 
     </LinearLayout>
 

@@ -154,6 +154,9 @@
         <!--
           原始输入默认折叠。它常是一整段截图转写文本，展开着就把下面三个操作按钮顶到屏幕外；
           需要核对时点开就行——"想看的时候点一下"比"一进来就被半屏长文挤走按钮"更符合此刻要做的事。
+
+          实机反馈：这一行原先 13sp + ▸（小三角），符号太小不显眼。改成 15sp + ▶，
+          并显式给颜色——与账目详情页的「输入解析」保持同一个样子。
         -->
         <TextView
             android:id="@+id/btn_toggle_raw"
@@ -162,8 +165,10 @@
             android:layout_marginTop="10dp"
             android:background="?android:attr/selectableItemBackground"
             android:paddingVertical="4dp"
-            android:textSize="13sp"
-            tools:text="你原来说的 ▸" />
+            android:textColor="@color/muted"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            tools:text="你原来说的 ▶" />
 
         <TextView
             android:id="@+id/raw_input"

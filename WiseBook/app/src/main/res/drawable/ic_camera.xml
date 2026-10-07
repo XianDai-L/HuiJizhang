@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 「从相册选截图」按钮的图标。颜色与 ic_mic 保持一致，两个按钮并排不会有一个显得更重 -->
+<!--
+  「从相册选截图」按钮的图标。
+  固定 24dp，按钮容器留 48dp 的点击区（无障碍最小尺寸），图标本身不跟着放大——
+  靠 ImageButton 的 scaleType=center 锁住。不写 scaleType 的话它会被拉伸到填满按钮，
+  观感上比旁边的发送箭头大一圈（实机反馈）。
+-->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"
     android:height="24dp"

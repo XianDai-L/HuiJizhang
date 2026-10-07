@@ -175,8 +175,8 @@ public class ConfirmActivity extends AppCompatActivity {
     private void applyRawState() {
         rawInput.setVisibility(rawExpanded ? View.VISIBLE : View.GONE);
         rawToggle.setText(rawExpanded
-                ? getString(R.string.confirm_raw_toggle) + " ▾"
-                : getString(R.string.confirm_raw_toggle) + " ▸");
+                ? getString(R.string.confirm_raw_toggle) + " ▼"
+                : getString(R.string.confirm_raw_toggle) + " ▶");
     }
 
     /** 分类选择器：一级横向、二级在下方展开（与账本页共用同一份实现） */

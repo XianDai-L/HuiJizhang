@@ -133,8 +133,13 @@
         android:textSize="13sp"
         android:visibility="gone" />
 
-    <!-- 输入栏。语音模式下输入框换成「点一下开始说话」，两个控件的权重一致，
-         位置不会跳 -->
+    <!--
+      输入栏：[相机] [输入框] [发送]。相机在左是因为它是"另一种输入来源"，
+      与输入框是一类；发送在右是因为它决定"这一句怎么发出去"。
+
+      语音输入已整体移除（P3 再做，HANDOFF 决策 49）：真机上系统识别服务不可用，
+      留着就是个坏入口；而且一个不录音的记账应用不该申请麦克风权限。
+    -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -155,8 +160,13 @@
             android:layout_marginEnd="4dp"
             android:background="?android:attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/home_pick_image"
+            android:scaleType="center"
             android:src="@drawable/ic_camera" />
 
+        <!--
+          起步一行、最多三行（实机反馈定的，原来是 5 行）。超过三行就在框内上下滚动，
+          不做省略号——ellipsize 会把正在编辑的文字藏起来，用户没法核对。
+        -->
         <EditText
             android:id="@+id/input"
             android:layout_width="0dp"
@@ -167,35 +177,11 @@
             android:imeOptions="actionSend"
             android:importantForAutofill="no"
             android:inputType="textCapSentences|textMultiLine"
-            android:maxLines="5"
+            android:maxLines="3"
             android:minHeight="46dp"
             android:paddingHorizontal="16dp"
             android:paddingVertical="12dp"
             android:textSize="16sp" />
-
-        <TextView
-            android:id="@+id/speak"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:background="@drawable/bg_input_field"
-            android:gravity="center"
-            android:minHeight="46dp"
-            android:paddingHorizontal="16dp"
-            android:paddingVertical="12dp"
-            android:text="@string/home_speak_hint"
-            android:textSize="16sp"
-            android:visibility="gone"
-            tools:visibility="visible" />
-
-        <ImageButton
-            android:id="@+id/btn_voice_mode"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:layout_marginStart="4dp"
-            android:background="?android:attr/selectableItemBackgroundBorderless"
-            android:contentDescription="@string/home_switch_to_voice"
-            android:src="@drawable/ic_mic" />
 
         <ImageButton
             android:id="@+id/btn_send"
