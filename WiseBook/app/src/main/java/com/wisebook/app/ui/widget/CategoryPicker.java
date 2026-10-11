@@ -133,7 +133,10 @@ public final class CategoryPicker {
                     // 一级即末级时路径就是它自己的名字，再显示一遍只是噪音
                     pathView.setVisibility(View.GONE);
                 } else {
-                    pathView.setText(root.name + " " + CategoryTree.PATH_SEPARATOR + " " + leaf.name);
+                    // 分隔符染色，与详情页的分类行保持同一种读法
+                    pathView.setText(com.wisebook.app.ui.DraftFormatter.coloredPath(
+                            pathView.getContext(),
+                            root.name + " " + CategoryTree.PATH_SEPARATOR + " " + leaf.name));
                 }
 
                 row.setOnClickListener(view -> {

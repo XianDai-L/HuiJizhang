@@ -47,4 +47,13 @@ public interface CategoryDao {
     /** @return 每一行的 category_id，顺序与传入顺序一致 */
     @Insert
     List<Long> insertAll(List<CategoryEntity> categories);
+
+    /**
+     * 删除账本时清空它的整棵分类树（2026-10-11）。
+     *
+     * <p>与平时「只停用不物理删除」的原则不冲突：那条规矩是为了不让历史账目
+     * 变成孤儿；而账本整个被删掉时，它的账目也一并删了，孤儿无从谈起。
+     */
+    @Query("DELETE FROM t_category WHERE user_id = :userId")
+    void deleteByUser(long userId);
 }

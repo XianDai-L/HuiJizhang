@@ -16,8 +16,8 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.wisebook.app.R;
+import com.wisebook.app.ui.DraftFormatter;
 import com.wisebook.app.WiseBookApp;
-import com.wisebook.app.data.local.WiseBookDatabase;
 import com.wisebook.app.domain.confirm.ClarifyPlanner;
 import com.wisebook.app.domain.model.Direction;
 import com.wisebook.app.domain.model.PaymentMethod;
@@ -71,6 +71,8 @@ public class ConfirmActivity extends AppCompatActivity {
         setContentView(R.layout.activity_confirm);
         EdgeToEdgeInsets.apply(findViewById(R.id.confirm_root));
 
+        findViewById(R.id.btn_back).setOnClickListener(view -> finish());
+
         why = findViewById(R.id.why);
         questions = findViewById(R.id.questions);
         amount = findViewById(R.id.amount);
@@ -97,7 +99,7 @@ public class ConfirmActivity extends AppCompatActivity {
                 app.settingsRepository(),
                 app.categoryRepository(),
                 app.databaseExecutor(),
-                WiseBookDatabase.DEFAULT_USER_ID))
+                app.currentLedgerId()))
                 .get(ConfirmViewModel.class);
 
         categoryButton.setOnClickListener(view -> pickCategory());
@@ -153,7 +155,10 @@ public class ConfirmActivity extends AppCompatActivity {
 
         directionGroup.check(form.direction == Direction.INCOME
                 ? R.id.direction_income : R.id.direction_expense);
-        categoryButton.setText(form.categoryPath);
+        // 带样式的路径：层级分隔符染品牌色，与账本行、分类选择器同一种读法。
+        // 2026-10-08 补：这里原先是纯文本 setText，所以确认页的「>」一直是灰的，
+        // 和列表里同一个分类的显示对不上。
+        categoryButton.setText(DraftFormatter.coloredPath(this, form.categoryPath));
         paymentButton.setText(form.paymentText == null
                 ? getString(R.string.confirm_payment_unset) : form.paymentText);
         occurredAt.setText(getString(R.string.confirm_occurred_at) + "：" + form.occurredAtText);
@@ -184,7 +189,7 @@ public class ConfirmActivity extends AppCompatActivity {
         CategoryPicker.show(this, viewModel.tree(), viewModel.direction(), viewModel.scheme(),
                 path -> {
                     viewModel.setCategoryPath(path);
-                    categoryButton.setText(path);
+                    categoryButton.setText(DraftFormatter.coloredPath(this, path));
                 });
     }
 

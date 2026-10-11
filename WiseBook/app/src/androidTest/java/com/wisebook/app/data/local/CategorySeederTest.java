@@ -33,8 +33,8 @@ public class CategorySeederTest {
 
     private static final long USER_ID = WiseBookDatabase.DEFAULT_USER_ID;
 
-    /** 10 项支出一级 + 36 项支出二级 + 6 项收入一级 */
-    private static final int EXPECTED_TOTAL = 52;
+    /** 10 项支出一级 + 37 项支出二级（含 2026-10-11 新增的「人情 &gt; 转账」）+ 6 项收入一级 */
+    private static final int EXPECTED_TOTAL = 53;
 
     private WiseBookDatabase db;
 
@@ -53,20 +53,20 @@ public class CategorySeederTest {
 
     @Test
     public void seedsOnceAndIsIdempotent() {
-        CategorySeeder.seedIfEmpty(db);
+        CategorySeeder.seedIfEmpty(db, USER_ID);
         List<CategoryEntity> afterFirst = db.categoryDao().findAll(USER_ID);
-        assertEquals("10 项支出一级 + 36 项支出二级 + 6 项收入一级",
+        assertEquals("10 项支出一级 + 37 项支出二级 + 6 项收入一级",
                 EXPECTED_TOTAL, afterFirst.size());
 
-        // 再播一次不应产生重复：判据是「表是否为空」，天然幂等
-        CategorySeeder.seedIfEmpty(db);
+        // 再播一次不应产生重复：判据是「该账本分类是否为空」，天然幂等
+        CategorySeeder.seedIfEmpty(db, USER_ID);
         assertEquals("重复播种不得产生重复行",
                 EXPECTED_TOTAL, db.categoryDao().findAll(USER_ID).size());
     }
 
     @Test
     public void onlyTopLevelCategoriesCarryDirection() {
-        CategorySeeder.seedIfEmpty(db);
+        CategorySeeder.seedIfEmpty(db, USER_ID);
 
         for (CategoryEntity category : db.categoryDao().findAll(USER_ID)) {
             if (category.isTopLevel()) {
@@ -80,7 +80,7 @@ public class CategorySeederTest {
 
     @Test
     public void incomeCategoriesHaveNoChildren() {
-        CategorySeeder.seedIfEmpty(db);
+        CategorySeeder.seedIfEmpty(db, USER_ID);
 
         List<CategoryEntity> tops = db.categoryDao().findTopLevel(USER_ID);
         assertEquals("支出一级 10 项 + 收入一级 6 项", 16, tops.size());

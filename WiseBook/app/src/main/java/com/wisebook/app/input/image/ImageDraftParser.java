@@ -1,7 +1,6 @@
 package com.wisebook.app.input.image;
 
 import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
 import com.wisebook.app.data.local.entity.DraftEntity;
 import com.wisebook.app.domain.classify.CategoryTree;
 import com.wisebook.app.domain.model.CategoryScheme;
@@ -19,7 +18,6 @@ import com.wisebook.llm.ToolSchema;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -33,15 +31,21 @@ import java.util.List;
  * 转写失败（网络/限流/图里没字）与拆笔失败（模型没给出合法数组）都会变成
  * 「转人工填写」——这是 D1 定的正常路径。
  *
+ * <p>2026-10-08 起「取数组 → 装配」那一段由 {@link DraftAssembler#assembleBatch} 承担，
+ * 与文字入口共用（决策 50）。本类保留的差异只有三处：
+ * 第一步多一次转写、{@code source/evidenceType} 是 IMAGE、批次前缀是 {@code IMG-}。
+ *
  * <p>与 {@code ChatDraftParser} 一样，本类只解析、不落库、不改状态。
  */
 public final class ImageDraftParser {
+
+    /** 截图入口的批次标签前缀（文字入口是 {@code TXT-}） */
+    private static final String BATCH_PREFIX = "IMG-";
 
     private final ImageReader imageReader;
     private final StructuredExtractor extractor;
     private final ToolSchema batchTool;
     private final DraftAssembler assembler;
-    private final ZoneId zone;
 
     /**
      * @param imageReader 图 → 文字的转写器（由组装点提供，缺 Key 时那里会给出 null，
@@ -52,7 +56,6 @@ public final class ImageDraftParser {
     public ImageDraftParser(ImageReader imageReader, LlmClient client, String modelLabel,
                             CategoryTree tree, CategoryScheme scheme, long userId, ZoneId zone) {
         this.imageReader = imageReader;
-        this.zone = zone;
         this.batchTool = DraftToolSchema.buildBatch(tree, scheme);
         this.extractor = new StructuredExtractor(client);
         this.assembler = new DraftAssembler(tree, modelLabel, userId, zone);
@@ -81,33 +84,20 @@ public final class ImageDraftParser {
             return DraftParseResult.degraded("图里没识别出文字", 1);
         }
 
-        ExtractionResult extraction = extractor.extract(ImageDraftPrompt.DRAFTS, transcript, batchTool);
+        // 把分组标题上的日期下推到每一行，再交给模型（见 ImageTranscriptDatePropagator）：
+        // 「标题管到哪几条记录」是模型判得最不稳的地方，这一段改成代码算。
+        // rawInput 仍用未下推的原文——详情页要让用户看到「OCR 到底读到了什么」，
+        // 而补出来的日期是给模型用的加工结果，不是图上原本有的字。
+        ExtractionResult extraction = extractor.extract(ImageDraftPrompt.DRAFTS,
+                ImageTranscriptDatePropagator.propagate(transcript), batchTool);
         if (!extraction.isOk()) {
             return DraftParseResult.degraded(extraction.degradeReason(), extraction.attemptCount());
         }
 
         JsonArray array = extraction.payload().getAsJsonArray(DraftToolSchema.FIELD_DRAFTS);
-        if (array == null || array.isEmpty()) {
-            return DraftParseResult.degraded("没从这张图里读出账目", extraction.attemptCount());
-        }
-
-        String batchId = batchId(now);
-        List<DraftEntity> drafts = new ArrayList<>();
-        int index = 0;
-        for (JsonElement element : array) {
-            if (!element.isJsonObject()) {
-                // schema 校验已经保证元素是对象；这里只是不让一个坏元素毁掉整批
-                continue;
-            }
-            DraftEntity draft = assembler.assemble(element.getAsJsonObject(), transcript,
-                    DraftSource.IMAGE, EvidenceType.IMAGE, now);
-            // 一次截图里的多笔共享同一个批次标签（D1 §4.2：只是标签，不共享状态），
-            // splitIndex 记录它在图里的顺序——确认页按它排序才和用户看到的图一致
-            draft.batchId = batchId;
-            draft.splitIndex = index;
-            drafts.add(draft);
-            index++;
-        }
+        List<DraftEntity> drafts = assembler.assembleBatch(array, transcript,
+                DraftSource.IMAGE, EvidenceType.IMAGE,
+                assembler.batchId(BATCH_PREFIX, now), now);
         if (drafts.isEmpty()) {
             return DraftParseResult.degraded("没从这张图里读出账目", extraction.attemptCount());
         }
@@ -119,15 +109,5 @@ public final class ImageDraftParser {
     /** 供排查用：本入口实际发给模型的工具定义 */
     public ToolSchema tool() {
         return batchTool;
-    }
-
-    /**
-     * 批次标签。
-     *
-     * <p>用「现在」派生而不是 UUID：同一个毫秒里解析两张图在实际使用中不会发生，
-     * 而<b>可复现</b>的标签让单测能直接断言它（UUID 只能断言"非空"）。
-     */
-    private String batchId(LocalDateTime now) {
-        return "IMG-" + now.atZone(zone).toInstant().toEpochMilli();
     }
 }

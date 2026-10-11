@@ -8,7 +8,6 @@ import static org.junit.Assume.assumeTrue;
 
 import android.content.Context;
 import android.view.View;
-import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -37,6 +36,7 @@ import com.wisebook.app.ui.ledger.LedgerActivity;
 import com.wisebook.app.ui.ledger.MainActivity;
 import com.wisebook.app.ui.pending.PendingDraftsActivity;
 import com.wisebook.app.ui.report.ReportActivity;
+import com.wisebook.app.ui.settings.LedgerPickerActivity;
 import com.wisebook.app.ui.settings.SettingsActivity;
 
 import org.junit.Test;
@@ -57,8 +57,21 @@ import java.util.concurrent.Future;
  * {@code ViewModelProvider.Factory} 的 {@code create(Class)} 一旦没被走到，
  * 表现就是进页面直接崩，而不是编译期报错。
  *
- * <p>输入栏的三条用例（输入 → 发送 → 结果行）用的是首页而不是单独的对话页：
+ * <p>输入栏的用例用的是首页而不是单独的对话页：
  * 2026-10-02 起对话页并入首页（HANDOFF 决策 33），**入口变了，被守住的那条链没变**。
+ *
+ * <p><b>2026-10-08 修</b>：界面改版（首页结果行 → 自动消失的浮层、设置页 → 点行弹选择器、
+ * 账本页合计拆成收支两个）之后，本文件还引用着改版前的 id，导致<b>整个 androidTest 源集
+ * 编译不过</b>——不是"某条用例红"，而是 44 条 instrumented 一条都跑不了。
+ * 这次按新界面对齐，顺带把两处断言换成了它真正该守的东西：
+ * <ul>
+ *   <li>结果行已不存在，改成断言结果浮层 {@code parse_toast}（它 3 秒后自己消失，
+ *       所以等待窗口不能开太久）</li>
+ *   <li>「这一行不该看起来能点」原来的判据是 {@code TextView.isClickable()}。
+ *       浮层整体没有点击监听，可点的是里面那个「详情」按钮，
+ *       所以判据换成 {@code parse_toast_action} 的可见性——那条**用例的本意**（没配 Key 时
+ *       哪儿也去不了）没变</li>
+ * </ul>
  */
 @RunWith(AndroidJUnit4.class)
 public class UiSmokeTest {
@@ -73,10 +86,10 @@ public class UiSmokeTest {
                 assertNotNull("首页应有账本入口", activity.findViewById(R.id.btn_ledger));
                 assertNotNull("首页应有设置入口", activity.findViewById(R.id.btn_settings));
 
-                // 空闲状态：发送可点，结果行与进度提示都不该露出来
+                // 空闲状态：发送可点，结果浮层与进度提示都不该露出来
                 assertTrue("空闲时发送按钮应可点",
                         activity.findViewById(R.id.btn_send).isEnabled());
-                assertEquals(View.GONE, activity.findViewById(R.id.parse_result).getVisibility());
+                assertEquals(View.GONE, activity.findViewById(R.id.parse_toast).getVisibility());
                 assertEquals(View.GONE, activity.findViewById(R.id.parsing_hint).getVisibility());
             });
         }
@@ -100,6 +113,41 @@ public class UiSmokeTest {
         }
     }
 
+    /**
+     * 相邻两次结果<b>文案完全相同</b>时，第二次也必须弹。
+     *
+     * <p>这条钉的是一个真实出现过的 bug（`HANDOFF` §8-37）：去重键原先用
+     * {@code summary + detail} 拼文案，而"两笔都免确认直落的账"文案是常量，
+     * 于是第二笔被当成"同一条状态被重放"而静默。用户实测：「今天花了五块」→「今天花了六块」，
+     * 第二句不弹浮层（而中间夹一句落点不同的账就会弹）。
+     *
+     * <p>用"空输入"造两次<b>必然同文案</b>的结果（两次都是「先写一句要记的账」）：
+     * 好处是<b>不调模型、不花钱、也不依赖有没有配 Key</b>——这条用例要在任何环境下都跑得到，
+     * 否则它挡不住的东西又会被静默放过。
+     */
+    @Test
+    public void secondIdenticalResultStillShowsTheToast() throws InterruptedException {
+        try (ActivityScenario<MainActivity> scenario = ActivityScenario.launch(MainActivity.class)) {
+            scenario.onActivity(activity -> activity.findViewById(R.id.btn_send).performClick());
+            assertToast(scenario, "第一次发送就该弹出提示", true);
+
+            // 等它自己收起（3 秒寿命 + 淡出），否则"第二次弹了"与"第一次还没消失"分不开
+            Thread.sleep(4000L);
+            assertToast(scenario, "浮层该按设计自动收起", false);
+
+            scenario.onActivity(activity -> activity.findViewById(R.id.btn_send).performClick());
+            assertToast(scenario, "文案相同的第二次结果也必须弹（不能被当成状态重放）", true);
+        }
+    }
+
+    private static void assertToast(ActivityScenario<MainActivity> scenario, String message,
+                                    boolean expectedVisible) {
+        boolean[] visible = new boolean[1];
+        scenario.onActivity(activity -> visible[0] =
+                activity.findViewById(R.id.parse_toast).getVisibility() == View.VISIBLE);
+        assertEquals(message, expectedVisible, visible[0]);
+    }
+
     @Test
     public void homeShowsGuidanceWhenNoApiKeyIsConfigured() {
         // 这条的前提是「构建时没有注入 Key」。local.properties 里配了 Key 之后，
@@ -111,23 +159,28 @@ public class UiSmokeTest {
         try (ActivityScenario<MainActivity> scenario = ActivityScenario.launch(MainActivity.class)) {
             scenario.onActivity(activity -> {
                 EditText input = activity.findViewById(R.id.input);
-                TextView result = activity.findViewById(R.id.parse_result);
+                View toast = activity.findViewById(R.id.parse_toast);
+                TextView toastText = activity.findViewById(R.id.parse_toast_text);
+                View toastAction = activity.findViewById(R.id.parse_toast_action);
+
                 input.setText("今天打车 28");
                 activity.findViewById(R.id.btn_send).performClick();
 
-                assertEquals("没有 Key 时结果行必须露出来", View.VISIBLE, result.getVisibility());
-                String text = result.getText().toString();
+                // 没配 Key 时 ChatViewModel 是同步拒绝的（不提交后台任务），所以这里不用等
+                assertEquals("没有 Key 时结果浮层必须露出来", View.VISIBLE, toast.getVisibility());
+                String text = toastText.getText().toString();
                 assertTrue("没有 Key 时应提示去配置，实际：" + text, text.contains("API Key"));
-                assertFalse("没配 Key 时哪儿也去不了，这一行不该看起来能点", result.isClickable());
+                assertEquals("没配 Key 时哪儿也去不了，浮层上不该出现「详情」按钮",
+                        View.GONE, toastAction.getVisibility());
             });
         }
     }
 
     @Test
-    public void homeParsesARealInputAndShowsAResultRow() throws InterruptedException {
+    public void homeParsesARealInputAndShowsAResultToast() throws InterruptedException {
         // 这一条会真的调用模型、真的花钱，所以只在配了 Key 时执行。
-        // 它验的是端到端的一根链条：输入 → 解析 → 草稿 → 落账/待确认 → 结果行。
-        // 其中任何一环断了界面都不会报错，只是那一行永远不出现——
+        // 它验的是端到端的一根链条：输入 → 解析 → 草稿 → 落账/待确认 → 结果浮层。
+        // 其中任何一环断了界面都不会报错，只是那条浮层永远不出现——
         // 这种"静默失效"只有真跑一次才看得出来
         assumeTrue("没配 Key，跳过真实解析", hasApiKey());
 
@@ -137,21 +190,24 @@ public class UiSmokeTest {
                 activity.findViewById(R.id.btn_send).performClick();
             });
 
-            // 真实调用要等网络；最多等 90 秒（读超时本身是 120 秒，但正常几秒就回来）
+            // 真实调用要等网络；最多等 90 秒（读超时本身是 120 秒，但正常几秒就回来）。
+            // 轮询间隔取 250ms 而不是 1 秒：**浮层只活 3 秒**（MainActivity.TOAST_DURATION_MS），
+            // 间隔太粗的话有可能会连着两次都落在它收起之后
             boolean shown = false;
-            for (int attempt = 0; attempt < 90 && !shown; attempt++) {
+            for (int attempt = 0; attempt < 360 && !shown; attempt++) {
                 boolean[] state = new boolean[1];
                 scenario.onActivity(activity -> {
-                    TextView result = activity.findViewById(R.id.parse_result);
-                    state[0] = result.getVisibility() == View.VISIBLE
-                            && !result.getText().toString().isEmpty();
+                    View toast = activity.findViewById(R.id.parse_toast);
+                    TextView toastText = activity.findViewById(R.id.parse_toast_text);
+                    state[0] = toast.getVisibility() == View.VISIBLE
+                            && !toastText.getText().toString().isEmpty();
                 });
                 shown = state[0];
                 if (!shown) {
-                    Thread.sleep(1000L);
+                    Thread.sleep(250L);
                 }
             }
-            assertTrue("解析完成后，结果行应当带着结论出现在输入栏上方", shown);
+            assertTrue("解析完成后，结果浮层应当带着结论出现在输入栏上方", shown);
         }
     }
 
@@ -163,17 +219,82 @@ public class UiSmokeTest {
                         .llmConfigStore().hasApiKey();
     }
 
+    /**
+     * 设置页表单能起来。
+     *
+     * <p>2026-10-07 改版后，确认档位 / 大额阈值 / 分类方案 / API Key 都不再是 RadioGroup 与
+     * EditText，而是"一行可点、点开弹选择器或输入框"，行里显示当前值。
+     * 所以这里断言的是<b>行 + 它的值</b>——那才是用户能操作与能读到的两样东西。
+     */
     @Test
     public void settingsActivityLoadsForm() {
         try (ActivityScenario<SettingsActivity> scenario =
                      ActivityScenario.launch(SettingsActivity.class)) {
             scenario.onActivity(activity -> {
-                assertNotNull(activity.findViewById(R.id.group_confirm_mode));
-                assertNotNull(activity.findViewById(R.id.threshold));
-                assertNotNull(activity.findViewById(R.id.group_scheme));
-                assertNotNull(activity.findViewById(R.id.api_key));
-                assertNotNull(activity.findViewById(R.id.btn_save));
+                assertNotNull("确认档位那一行", activity.findViewById(R.id.row_confirm_mode));
+                assertNotNull("确认档位的当前值", activity.findViewById(R.id.value_confirm_mode));
+                assertNotNull("大额阈值那一行", activity.findViewById(R.id.row_threshold));
+                assertNotNull("大额阈值的当前值", activity.findViewById(R.id.value_threshold));
+                // 分类方案 2026-10-11 从设置页移除：新建账本时定死，之后不能改，
+                // 所以这里不再有 row_scheme / value_scheme 可断言
+                assertNotNull("API Key 那一行", activity.findViewById(R.id.row_api_key));
+                assertNotNull("API Key 的当前值", activity.findViewById(R.id.value_api_key));
+                // 2026-10-11：底部「保存」按钮取消（改成每个选项在自己的对话框里确定），
+                // 所以这里不再验 btn_save，改验新增的「账本」分组那一行
+                assertNotNull("账本那一行", activity.findViewById(R.id.row_ledger));
+                assertNotNull("账本的当前值", activity.findViewById(R.id.value_ledger));
+                assertNotNull("账本备份那一组", activity.findViewById(R.id.row_export));
+                assertNotNull(activity.findViewById(R.id.row_import));
             });
+        }
+    }
+
+    /**
+     * 反馈表单能弹出来（2026-10-08）。
+     *
+     * <p>只验"点一下不崩"：表单里的控件 id 一旦写错，崩溃发生在<b>用户按下发送之后</b>，
+     * 而那正是最不该出问题的一刻。对话框里的控件用 {@code findViewById(activity)} 拿不到
+     * （它们不在 Activity 的视图树里），所以这里只能验到"弹出来了"，
+     * 更深的交互留给真机手验。
+     */
+    @Test
+    public void feedbackFormOpensFromSettings() {
+        try (ActivityScenario<SettingsActivity> scenario =
+                     ActivityScenario.launch(SettingsActivity.class)) {
+            scenario.onActivity(activity ->
+                    activity.findViewById(R.id.row_feedback).performClick());
+        }
+    }
+
+    /**
+     * 账本选择页能起来（2026-10-11 多账本）。
+     *
+     * <p>它要读账本列表 + 每个账本的分类树，是新增页里依赖最多的一页，
+     * 光"能编译"不足以保证起得来。
+     */
+    @Test
+    public void ledgerPickerActivityStarts() {
+        try (ActivityScenario<LedgerPickerActivity> scenario =
+                     ActivityScenario.launch(LedgerPickerActivity.class)) {
+            scenario.onActivity(activity -> {
+                assertNotNull(activity.findViewById(R.id.btn_new_ledger));
+                assertNotNull(activity.findViewById(R.id.ledger_cards));
+            });
+        }
+    }
+
+    /**
+     * 「新建账本」弹框能弹出来（2026-10-11）。
+     *
+     * <p>自定义布局的 {@code inflate} 是这类弹框最容易挂的地方（id 写错就崩），
+     * 所以这里至少验一次"点一下就弹、不崩"。
+     */
+    @Test
+    public void newLedgerDialogOpens() {
+        try (ActivityScenario<LedgerPickerActivity> scenario =
+                     ActivityScenario.launch(LedgerPickerActivity.class)) {
+            scenario.onActivity(activity ->
+                    activity.findViewById(R.id.btn_new_ledger).performClick());
         }
     }
 
@@ -194,7 +315,9 @@ public class UiSmokeTest {
                      ActivityScenario.launch(LedgerActivity.class)) {
             scenario.onActivity(activity -> {
                 assertNotNull(activity.findViewById(R.id.list));
-                assertNotNull(activity.findViewById(R.id.summary));
+                // 改版后顶部合计拆成了支出 / 收入两个（原来是单个 summary）
+                assertNotNull(activity.findViewById(R.id.summary_expense));
+                assertNotNull(activity.findViewById(R.id.summary_income));
             });
         }
     }

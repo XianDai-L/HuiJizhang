@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  深色色板。名字必须与 values/colors.xml 一一对应 ——
+  少一个就会回退到亮色值，在深色底上「亮一块」。
+
+  两条调整原则：
+  1) 品牌紫要提亮（#5B4BE0 → #8B7CFF）：原紫色压在 #121214 上会沉下去、看不出是强调色。
+  2) 所有「浅色底」都要换成低饱和的深色底（如分类底 #FFF0E4 → #3A2A1C），
+     否则深色页面上会出现一排发光的浅色方块。
+-->
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+
+    <!-- ============ 品牌 ============ -->
+    <color name="brand">#FF8B7CFF</color>
+    <color name="brand_ink">#FFB3A8FF</color>
+    <color name="brand_soft">#FF2A2547</color>
+    <color name="brand_line">#FF3D3568</color>
+
+    <!-- ============ 文字层级 ============ -->
+    <color name="ink">#FFF2F2F4</color>
+    <color name="ink_2">#FFA8A8B2</color>
+    <color name="ink_3">#FF74747E</color>
+
+    <!-- ============ 容器 ============ -->
+    <color name="page_bg">#FF121214</color>
+    <color name="surface">#FF1C1C20</color>
+    <color name="surface_sunken">#FF26262C</color>
+    <color name="line">#FF2E2E35</color>
+
+    <!-- ============ 语义 ============ -->
+    <color name="income">#FF4ADE9E</color>
+    <color name="income_soft">#FF14332A</color>
+    <color name="danger">#FFFF7B7E</color>
+    <color name="danger_soft">#FF3A2226</color>
+
+    <!-- ============ 概览条 ============ -->
+    <!-- 深色页面上再加深就会糊进背景，所以改成「带紫调、比页面亮一档」 -->
+    <color name="hero_start">#FF322E52</color>
+    <color name="hero_end">#FF232028</color>
+    <color name="hero_label">#99FFFFFF</color>
+    <color name="hero_up">#FF4ADE9E</color>
+
+    <!-- ============ 分类色 ============ -->
+    <color name="cat_food">#FFFFA76B</color>
+    <color name="cat_food_bg">#FF3A2A1C</color>
+    <color name="cat_move">#FF7CB6F0</color>
+    <color name="cat_move_bg">#FF1C2A3C</color>
+    <color name="cat_shop">#FFDF8CE0</color>
+    <color name="cat_shop_bg">#FF35203A</color>
+    <color name="cat_life">#FF4FD0BE</color>
+    <color name="cat_life_bg">#FF12302E</color>
+    <color name="cat_fun">#FFF0C24A</color>
+    <color name="cat_fun_bg">#FF352C14</color>
+    <color name="cat_other">#FFA8B2C0</color>
+    <color name="cat_other_bg">#FF2A2F36</color>
+
+    <!-- ============ 兼容旧名 ============ -->
+    <color name="muted">#FFA8A8B2</color>
+    <color name="auto_posted_background">#FF262046</color>
+    <color name="auto_posted_badge">#FF8B7CFF</color>
+    <color name="category_tab_selected">#FF8B7CFF</color>
+    <color name="category_tab_normal">#00000000</color>
+    <color name="category_tab_stroke">#FF3A3A42</color>
+    <color name="pane_background">#FF26262C</color>
+    <color name="composer_field_background">#FF1C1C20</color>
+    <color name="composer_field_stroke">#FF2E2E35</color>
+    <color name="composer_send">#FF8B7CFF</color>
+    <color name="composer_send_disabled">#FF3A3A42</color>
+</resources>

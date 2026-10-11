@@ -37,6 +37,12 @@
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
 
+        <!-- 账本选择（2026-10-11 多账本）：有输入框（新建 / 重命名 / 删除确认），调成 adjustResize -->
+        <activity
+            android:name=".ui.settings.LedgerPickerActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+
         <activity
             android:name=".ui.pending.PendingDraftsActivity"
             android:exported="false" />

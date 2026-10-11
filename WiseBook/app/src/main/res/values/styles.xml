@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  文字样式。刻意不写 parent、属性全部显式指定：
+  一是避免依赖 Material 库的 TextAppearance 命名（版本间改过几次），
+  二是每个样式的最终效果一眼可见，不用去翻父样式。
+
+  所有字号都从 @dimen/text_* 取，不要在布局里写裸 sp。
+-->
+<resources>
+    <!--
+      点号命名的样式会隐式继承同名的前缀样式（Text.Display 的父是 Text），
+      而这个父样式必须真实存在，否则 AAPT 直接报 style/Text not found。
+      所以这里必须先立一个空的基样式。
+    -->
+    <style name="Text" />
+
+    <!-- 页面主标题：「慧记」 -->
+    <style name="Text.Display">
+        <item name="android:textSize">@dimen/text_display</item>
+        <item name="android:textColor">@color/ink</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:letterSpacing">-0.02</item>
+        <item name="android:includeFontPadding">false</item>
+    </style>
+
+    <!-- 区块标题：最近账目、按一级分类 -->
+    <style name="Text.Section">
+        <item name="android:textSize">@dimen/text_section</item>
+        <item name="android:textColor">@color/ink</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <!-- 行主文字：商户名、字段值 -->
+    <style name="Text.Body">
+        <item name="android:textSize">@dimen/text_body</item>
+        <item name="android:textColor">@color/ink</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <!-- 正文大小的次要文字：说明句、面板正文 -->
+    <style name="Text.Muted">
+        <item name="android:textSize">@dimen/text_body_small</item>
+        <item name="android:textColor">@color/ink_2</item>
+    </style>
+
+    <!-- 行副文字：时间 · 分类 · 支付方式 -->
+    <style name="Text.Caption">
+        <item name="android:textSize">@dimen/text_caption</item>
+        <item name="android:textColor">@color/ink_3</item>
+    </style>
+
+    <!-- 金额：一律等宽数字（tnum），纵向对齐不跳字 -->
+    <style name="Text.Amount">
+        <item name="android:textSize">@dimen/text_amount_row</item>
+        <item name="android:textColor">@color/ink</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:fontFeatureSettings">tnum</item>
+        <item name="android:includeFontPadding">false</item>
+    </style>
+
+    <!-- 收入金额：只有颜色不同 -->
+    <style name="Text.Amount.Income">
+        <item name="android:textColor">@color/income</item>
+    </style>
+
+    <!-- 详情页的大金额 -->
+    <style name="Text.Amount.Detail">
+        <item name="android:textSize">@dimen/text_amount_detail</item>
+        <item name="android:letterSpacing">-0.035</item>
+    </style>
+
+    <!-- 概览条上的金额（深色卡里，白字） -->
+    <style name="Text.Amount.Hero">
+        <item name="android:textSize">@dimen/text_amount_hero</item>
+        <item name="android:textColor">@color/white</item>
+        <item name="android:letterSpacing">-0.025</item>
+    </style>
+</resources>

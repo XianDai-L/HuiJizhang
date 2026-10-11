@@ -31,6 +31,14 @@ public class RelativeTimeResolverTest {
                 Instant.ofEpochMilli(resolve(phrase).occurredAtMillis), ZONE);
     }
 
+    /** 换一个参照时间算——「10月」这类断言用 {@link #REF} 会撞上"未来当去年"的规则 */
+    private static LocalDateTime at(String phrase, LocalDateTime reference) {
+        return LocalDateTime.ofInstant(
+                Instant.ofEpochMilli(
+                        RelativeTimeResolver.resolve(phrase, reference, ZONE).occurredAtMillis),
+                ZONE);
+    }
+
     // ------------------------------------------------------------ 兜底
 
     @Test
@@ -177,5 +185,76 @@ public class RelativeTimeResolverTest {
         assertTrue(matched.contains("昨天"));
         assertTrue(matched.contains("下午"));
         assertTrue(matched.contains("3点"));
+    }
+
+    // ------------------------------------------------------------ 相对月
+
+    /**
+     * 「上个月花了 50 块」这类说法。
+     *
+     * <p>2026-10-07 补：在那之前「上个月」不在覆盖范围内，会落到 fallback 用当前时间，
+     * 于是上个月花的钱被记到了本月。用 {@code REF} 的偏移做断言，不写死具体日期，
+     * 免得以后换参照时间还要改一遍测试。
+     */
+    @Test
+    public void relativeMonthMovesByWholeMonths() {
+        // 只说了"哪个月"、没说哪天，取那个月的同一天；时刻沿用参照时间
+        assertEquals(REF.minusMonths(1), at("上个月"));
+        assertEquals(REF.minusMonths(2), at("上上个月"));
+        assertEquals(REF.plusMonths(1), at("下个月"));
+        assertEquals(REF.minusMonths(1), at("上月"));
+        assertEquals(OccurredAtSource.EXPLICIT, resolve("上个月").source);
+        assertEquals("上个月", resolve("上个月").matchedText);
+    }
+
+    @Test
+    public void relativeMonthCombinesWithTimeOfDay() {
+        assertEquals(REF.minusMonths(1).withHour(15).withMinute(0), at("上个月下午3点"));
+    }
+
+    /** 往回一个月时"那天不存在"（3 月 31 日 → 2 月）不该抛异常，按 java.time 的规则落到月末 */
+    @Test
+    public void monthOverflowFallsBackToMonthEnd() {
+        LocalDateTime march31 = LocalDateTime.of(2026, 3, 31, 10, 0);
+        RelativeTimeResolver.Result result =
+                RelativeTimeResolver.resolve("上个月", march31, ZONE);
+        assertEquals(LocalDateTime.of(2026, 2, 28, 10, 0),
+                LocalDateTime.ofInstant(Instant.ofEpochMilli(result.occurredAtMillis), ZONE));
+    }
+
+    /** 「9月5号」不能被相对月的规则抢走：它没有"上/这/下"前缀 */
+    @Test
+    public void monthDayIsNotHijackedByRelativeMonth() {
+        assertEquals(LocalDateTime.of(2026, 9, 5, 0, 0), at("9月5号").withHour(0).withMinute(0));
+    }
+
+    // ------------------------------------------------------------ 账单版面（2026-10-08）
+
+    /**
+     * 账单截图的分组标题写成「10月1日 星期四」时，要按月日算，不能按星期算。
+     *
+     * <p>2026-10-08 修：在那之前 WEEKDAY 排在 MONTH_DAY 前面，而它的前缀
+     * （这/本/上/下）本来就是可选的——「星期四」被它当成「本周四」抢走，
+     * 明确写着的月日再没机会命中，截图整批账目的日期会整体偏掉一周。
+     *
+     * <p>参照日换成 10 月，是因为用 {@link #REF}（9月24日）时「10月1日」落在未来，
+     * 会撞上「算出来在未来就当去年」那条规则，断言就得写成去年、读不出本意。
+     */
+    @Test
+    public void monthDayWinsOverWeekdayInBillHeader() {
+        LocalDateTime october = LocalDateTime.of(2026, 10, 8, 20, 30);
+        assertEquals(LocalDateTime.of(2026, 10, 1, 20, 30), at("10月1日 星期四", october));
+        assertEquals(OccurredAtSource.EXPLICIT,
+                RelativeTimeResolver.resolve("10月1日 星期四", october, ZONE).source);
+
+        // 只有星期时照旧走周内，不能被这次顺序调整带跑
+        assertEquals(LocalDateTime.of(2026, 10, 7, 20, 30), at("星期三", october));
+    }
+
+    /** 分组标题的日期 + 行内时刻（截图下推之后模型抄下来的就是这个形状） */
+    @Test
+    public void billHeaderDateCombinesWithRowClock() {
+        LocalDateTime october = LocalDateTime.of(2026, 10, 8, 20, 30);
+        assertEquals(LocalDateTime.of(2026, 10, 1, 18, 34), at("10月1日 18:34", october));
     }
 }

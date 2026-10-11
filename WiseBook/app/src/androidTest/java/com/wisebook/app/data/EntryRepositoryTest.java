@@ -64,11 +64,12 @@ public class EntryRepositoryTest {
         db = Room.inMemoryDatabaseBuilder(context, WiseBookDatabase.class)
                 .allowMainThreadQueries()
                 .build();
-        CategorySeeder.seedIfEmpty(db);
+        CategorySeeder.seedIfEmpty(db, USER_ID);
 
-        entryRepository = new EntryRepository(db, new EvidenceStore(context.getFilesDir()));
-        reportRepository = new ReportRepository(db);
-        tree = new CategoryRepository(db).loadTree(USER_ID);
+        CurrentLedger ledger = () -> USER_ID;
+        entryRepository = new EntryRepository(db, new EvidenceStore(context.getFilesDir()), ledger);
+        reportRepository = new ReportRepository(db, ledger);
+        tree = new CategoryRepository(db, ledger).loadTree(USER_ID);
     }
 
     @After

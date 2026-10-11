@@ -31,9 +31,16 @@ import java.util.List;
  */
 public final class DraftToolSchema {
 
+    /**
+     * 单笔字段契约的名字。
+     *
+     * <p>2026-10-08 起它<b>不再作为顶层工具发给模型</b>：两个入口都走批量工具
+     * （决策 50），这份定义的作用变成"批量数组的元素 schema"（见 {@link #buildBatch}）。
+     * 名字保留是因为它同时也是字段定义本身的名字——元素到底描述的是什么，得有名字可叫。
+     */
     public static final String TOOL_NAME = "create_draft";
 
-    /** 一图多笔用的工具名：外层是数组，元素仍是同一份单笔字段定义 */
+    /** 批量工具名：外层是数组，元素是 {@link #build} 那份单笔字段定义 */
     public static final String BATCH_TOOL_NAME = "create_draft_batch";
 
     /** 批量输出里装账目的字段名 */
@@ -49,10 +56,6 @@ public final class DraftToolSchema {
     public static final String FIELD_MERCHANT = "merchant";
     public static final String FIELD_ITEMS = "items";
     public static final String FIELD_NOTE = "note";
-    public static final String FIELD_TRANSACTION_COUNT = "transactionCount";
-
-    /** 模型最多被允许报出的笔数。超过这个数直接当没填，避免它给出荒谬的数字扩大追问范围 */
-    public static final int MAX_TRANSACTION_COUNT = 20;
 
     private DraftToolSchema() {
     }
@@ -90,6 +93,7 @@ public final class DraftToolSchema {
             builder.enumOf(FIELD_CATEGORY_PATH,
                     "分类路径，只能从这个枚举里选。支出选支出分类，收入选收入分类，"
                             + "转账选「人情」或其下的二级（不要选「其他」）。"
+                            + "能判断到二级就给二级；只能判断到一级时给一级也可以。"
                             + "实在判断不出就留空",
                     ToolSchema.Requirement.OPTIONAL, paths.toArray(new String[0]));
         }
@@ -107,19 +111,23 @@ public final class DraftToolSchema {
                         ToolSchema.Requirement.OPTIONAL)
                 .stringArray(FIELD_ITEMS, "商品明细（可空）", ToolSchema.Requirement.OPTIONAL)
                 .string(FIELD_NOTE, "备注（可空）", ToolSchema.Requirement.OPTIONAL)
-                .integer(FIELD_TRANSACTION_COUNT,
-                        "这句话里实际包含几笔账。只有一笔时填 1",
-                        ToolSchema.Requirement.OPTIONAL)
                 .build();
     }
 
     /**
-     * 「一图多笔」的工具定义（P2）：外层一个数组，<b>元素就是 {@link #build} 那份单笔 schema</b>。
+     * 多笔的工具定义：外层一个数组，<b>元素就是 {@link #build} 那份单笔 schema</b>。
      *
-     * <p>单独做一个工具而不是把单笔也改成数组，是因为文字入口的语义就是"一句话一笔"
-     * （多笔时只报 {@code transactionCount}，决策 14）。让两个入口各用各的工具，
-     * 好处是各自的重试反馈都精确到自己的形状；而元素字段共用一份定义，
-     * 又保证了两边不会在字段上分叉。
+     * <p>P2 加它时只给截图入口用（「一图多笔」）。2026-10-08 起<b>文字入口也走它</b>
+     * （决策 50，依据 `docs/对话多笔录入实验.md`）——所以现在两个入口共用同一个工具，
+     * 差异只在提示词里"顺序按句中出现次序还是图中从上到下"。
+     *
+     * <p>元素 schema 是同一个对象引用而不是深拷贝：数组元素与单笔本该是同一套字段定义，
+     * 拷贝一份反而让「改了单笔、忘了改数组」重新成为可能。
+     *
+     * <p><b>数组刻意不设 {@code maxItems} 上限</b>（2026-10-08 用户拍板）：设了之后，
+     * 超限会让整批被判非法 → 重试 → 整批降级转人工，而"真有一张二十笔的长账单截图"
+     * 恰恰是最需要自动拆的场景。防过拆靠 prompt 里那句"拆分边界只看金额 /
+     * 不是金额的数字不要拆成一笔"，而不是靠 schema 一刀切。
      */
     public static ToolSchema buildBatch(CategoryTree tree, CategoryScheme scheme) {
         return ToolSchema.builder(BATCH_TOOL_NAME)
@@ -133,22 +141,46 @@ public final class DraftToolSchema {
     }
 
     /**
-     * 允许的分类路径清单：两个方向的末级分类。
+     * 允许的分类路径清单：两个方向的<b>末级分类 + 「有二级的一级」</b>。
      *
      * <p>两个方向放进同一个枚举，是因为模型在看到句子之前无法先知道方向。
      * 方向与路径不匹配的情况（如一笔支出选了「工资」）由
-     * {@link CategoryTree#idOfPath} 在解析时拦下，结果是"分类没定下来 → 反问用户"。
+     * {@link CategoryTree#idOfPath} 在解析时拦下，结果是"分类没定下来 → 落默认桶"。
+     *
+     * <p><b>为什么一级也要进枚举</b>（2026-10-08 修，HANDOFF §8-31）：
+     * prompt 明确让模型「转账一律选<b>「人情」</b>或其下的二级」，而枚举原先只列末级
+     * （{@code 人情>红包} / {@code 人情>礼物} / {@code 人情>请客}）——<b>提示词让模型给一个
+     * 协议层禁止的取值</b>，于是每笔转账都白重试一次（实测首次通过率因此掉到 4/6）。
+     * 而"落在一级"本来就是这个系统的正常形态：转账没有可用分类时，
+     * {@code CategoryClassifier} 的兜底写的就是一级「人情」（决策 32），
+     * 报表按一级聚合（D1 §6.2），{@code rootIdOf} / {@code pathOf} 对它都成立。
+     *
+     * <p>于是现在枚举允许两级，粒度靠 prompt 引导（能判断到二级就给二级，
+     * 判断不到再给一级）——而不是让模型为了满足 schema 去<b>编一个二级</b>，
+     * 那样得到的"红包 / 礼物 / 请客"是假信息。
+     *
+     * <p>简单方案下 {@code selectable} 返回的就是一级，这里不会再重复添加（有 {@code contains} 去重）。
      */
     public static List<String> categoryPaths(CategoryTree tree, CategoryScheme scheme) {
         List<String> paths = new ArrayList<>();
         for (Direction direction : new Direction[]{Direction.EXPENSE, Direction.INCOME}) {
             for (CategoryEntity category : tree.selectable(direction, scheme)) {
-                String path = tree.pathOf(category.categoryId);
-                if (path != null && !paths.contains(path)) {
-                    paths.add(path);
+                addPath(paths, tree, category.categoryId);
+            }
+            for (CategoryEntity top : tree.topLevel(direction)) {
+                // 没有二级的一级（如「其他」「工资」）本来就在 selectable 里，别重复
+                if (!tree.children(top.categoryId).isEmpty()) {
+                    addPath(paths, tree, top.categoryId);
                 }
             }
         }
         return paths;
+    }
+
+    private static void addPath(List<String> paths, CategoryTree tree, long categoryId) {
+        String path = tree.pathOf(categoryId);
+        if (path != null && !paths.contains(path)) {
+            paths.add(path);
+        }
     }
 }

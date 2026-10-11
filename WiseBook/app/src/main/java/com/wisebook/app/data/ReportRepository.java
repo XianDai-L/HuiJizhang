@@ -30,17 +30,20 @@ import java.util.List;
 public final class ReportRepository {
 
     private final WiseBookDatabase database;
+    private final CurrentLedger currentLedger;
 
-    public ReportRepository(WiseBookDatabase database) {
+    public ReportRepository(WiseBookDatabase database, CurrentLedger currentLedger) {
         this.database = database;
+        this.currentLedger = currentLedger;
     }
 
-    /** 组装某个月的报表 */
+    /** 组装<b>当前账本</b>某个月的报表 */
     public MonthlyReport build(MonthRange range, boolean includeTransfer) {
+        long userId = currentLedger.id();
         List<CategoryTotal> totals =
-                database.entryDao().totalsBetween(range.fromInclusive, range.toExclusive);
+                database.entryDao().totalsBetween(userId, range.fromInclusive, range.toExclusive);
         List<EntryEntity> entries =
-                database.entryDao().findBetween(range.fromInclusive, range.toExclusive);
+                database.entryDao().findBetween(userId, range.fromInclusive, range.toExclusive);
         return MonthlyReport.of(range, toSums(totals), toEstimates(entries), includeTransfer);
     }
 

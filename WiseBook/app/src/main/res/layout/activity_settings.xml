@@ -1,165 +1,668 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  设置页。三组领域设置（D1 §3.5 的 t_setting）+ 一组模型连接配置。
-  用 LinearLayout 而不是 ConstraintLayout：这是一张表单，纵向堆叠就是它的全部布局逻辑。
+  设置页。四组领域/连接设置 + 一组账本管理。
+
+  2026-10-07 改成<b>列表入口式</b>：每行是「标题 + 一句说明 + 当前值 + 右箭头」，
+  点它弹出对话框选。原来的做法是把单选框直接铺在页面上——
+  六个选项加上各自的说明，一屏根本放不下，用户要滚半天才知道有哪些设置。
+
+  2026-10-11 两处调整（用户要求）：
+  · <b>取消底部「保存」按钮</b>：改成每个选项在自己的对话框里点「确定」即写库，
+    不再有"改了但要记得保存"这一步；
+  · <b>「账本」从「记账行为」里提出来</b>单独成组，与它同级；
+    「模型与数据」整组下移到「账本备份」下方。
+  分组顺序：记账行为 → 账本 → 账本备份 → 模型与数据 → 其他。
+
+  行内容易长（模型名可能很长），所以值那一列限宽并省略，
+  完整值在对话框里能看全、能改。
 -->
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/settings_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:fillViewport="true"
+    android:background="@color/page_bg"
+    android:orientation="vertical"
     tools:context=".ui.settings.SettingsActivity">
 
+    <!-- ==================== 顶栏 ==================== -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="20dp">
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="@dimen/space_3"
+        android:paddingTop="@dimen/space_2"
+        android:paddingEnd="@dimen/space_3">
+
+        <ImageButton
+            android:id="@+id/btn_back"
+            android:layout_width="@dimen/icon_button"
+            android:layout_height="@dimen/icon_button"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/action_back"
+            android:scaleType="centerInside"
+            android:src="@drawable/ic_back"
+            android:tint="@color/ink" />
 
         <TextView
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:text="@string/settings_confirm_mode"
-            android:textSize="17sp"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="@string/settings_title"
+            android:textColor="@color/ink"
+            android:textSize="@dimen/text_title"
             android:textStyle="bold" />
 
-        <RadioGroup
-            android:id="@+id/group_confirm_mode"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical">
-
-            <RadioButton
-                android:id="@+id/mode_strict"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/settings_mode_strict" />
-
-            <RadioButton
-                android:id="@+id/mode_large"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/settings_mode_large" />
-
-            <RadioButton
-                android:id="@+id/mode_doubtful"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/settings_mode_doubtful" />
-        </RadioGroup>
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="18dp"
-            android:text="@string/settings_threshold"
-            android:textSize="15sp" />
-
-        <EditText
-            android:id="@+id/threshold"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:importantForAutofill="no"
-            android:inputType="number"
-            android:maxLength="7"
-            tools:text="300" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="22dp"
-            android:text="@string/settings_scheme"
-            android:textSize="17sp"
-            android:textStyle="bold" />
-
-        <RadioGroup
-            android:id="@+id/group_scheme"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical">
-
-            <RadioButton
-                android:id="@+id/scheme_simple"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/settings_scheme_simple" />
-
-            <RadioButton
-                android:id="@+id/scheme_standard"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/settings_scheme_standard" />
-        </RadioGroup>
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="22dp"
-            android:text="@string/settings_provider"
-            android:textSize="17sp"
-            android:textStyle="bold" />
-
-        <RadioGroup
-            android:id="@+id/group_provider"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical">
-
-            <RadioButton
-                android:id="@+id/provider_siliconflow"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="硅基流动" />
-
-            <RadioButton
-                android:id="@+id/provider_deepseek"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="DeepSeek 官方" />
-        </RadioGroup>
-
-        <EditText
-            android:id="@+id/model"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:hint="@string/settings_model_hint"
-            android:importantForAutofill="no"
-            android:inputType="text" />
-
-        <EditText
-            android:id="@+id/api_key"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:hint="@string/settings_api_key_hint"
-            android:importantForAutofill="no"
-            android:inputType="textPassword" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
-            android:text="@string/settings_credentials_note"
-            android:textSize="12sp" />
-
-        <Button
-            android:id="@+id/btn_save"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
-            android:text="@string/settings_action_save"
-            android:textSize="16sp" />
-
-        <TextView
-            android:id="@+id/status"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="14dp"
-            android:textSize="14sp"
-            tools:text="已保存" />
-
+        <View
+            android:layout_width="@dimen/icon_button"
+            android:layout_height="@dimen/icon_button" />
     </LinearLayout>
 
-</ScrollView>
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:fillViewport="true"
+        android:scrollbars="none">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingStart="@dimen/page_padding_h"
+            android:paddingEnd="@dimen/page_padding_h"
+            android:paddingBottom="@dimen/page_padding_bottom">
+
+            <!-- ==================== 分组一：记账行为 ==================== -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/space_2"
+                android:letterSpacing="0.12"
+                android:text="@string/settings_group_accounting"
+                android:textColor="@color/ink_3"
+                android:textSize="@dimen/text_micro"
+                android:textStyle="bold" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/space_2"
+                android:background="@drawable/bg_card"
+                android:divider="@drawable/divider_line"
+                android:orientation="vertical"
+                android:paddingStart="@dimen/space_4"
+                android:paddingEnd="@dimen/space_4"
+                android:showDividers="middle">
+
+                <!-- 确认档位 -->
+                <LinearLayout
+                    android:id="@+id/row_confirm_mode"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:gravity="center_vertical"
+                    android:minHeight="@dimen/touch_target"
+                    android:orientation="horizontal"
+                    android:paddingTop="14dp"
+                    android:paddingBottom="14dp">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/settings_confirm_mode"
+                            android:textColor="@color/ink"
+                            android:textSize="@dimen/text_body" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="@string/settings_confirm_mode_note"
+                            android:textColor="@color/ink_3"
+                            android:textSize="@dimen/text_micro" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/value_confirm_mode"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="@dimen/space_3"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:maxWidth="120dp"
+                        android:textColor="@color/ink_2"
+                        android:textSize="@dimen/text_body_small"
+                        tools:text="金额优先" />
+
+                    <ImageView
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:layout_marginStart="@dimen/space_1"
+                        android:contentDescription="@null"
+                        android:src="@drawable/ic_chevron_right"
+                        android:tint="@color/ink_3" />
+                </LinearLayout>
+
+                <!-- 大额阈值 -->
+                <LinearLayout
+                    android:id="@+id/row_threshold"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:gravity="center_vertical"
+                    android:minHeight="@dimen/touch_target"
+                    android:orientation="horizontal"
+                    android:paddingTop="14dp"
+                    android:paddingBottom="14dp">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/settings_threshold"
+                            android:textColor="@color/ink"
+                            android:textSize="@dimen/text_body" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="@string/settings_threshold_note"
+                            android:textColor="@color/ink_3"
+                            android:textSize="@dimen/text_micro" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/value_threshold"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="@dimen/space_3"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:maxWidth="120dp"
+                        android:textColor="@color/ink_2"
+                        android:textSize="@dimen/text_body_small"
+                        tools:text="300 元" />
+
+                    <ImageView
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:layout_marginStart="@dimen/space_1"
+                        android:contentDescription="@null"
+                        android:src="@drawable/ic_chevron_right"
+                        android:tint="@color/ink_3" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- ==================== 分组二：账本（2026-10-11） ==================== -->
+            <!--
+              从「记账行为」里提出来单独成组：它管的是"钱记到哪儿"，
+              与"记账行为"（怎么判、怎么问）不是一回事，摆在一起反而看不出区别。
+              这一行点开进账本选择页，像选存档一样切换。
+
+              这一组<b>只有一行</b>：分类方案不再放这里（2026-10-11 用户决定）。
+              它改成"新建账本时定死、之后不能改"，所以设置页不该再给它一个入口——
+              留着一个点不开或者点了没用的行，比没有更糟。
+            -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/space_6"
+                android:letterSpacing="0.12"
+                android:text="@string/settings_group_ledger"
+                android:textColor="@color/ink_3"
+                android:textSize="@dimen/text_micro"
+                android:textStyle="bold" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/space_2"
+                android:background="@drawable/bg_card"
+                android:orientation="vertical"
+                android:paddingStart="@dimen/space_4"
+                android:paddingEnd="@dimen/space_4">
+
+                <LinearLayout
+                    android:id="@+id/row_ledger"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:gravity="center_vertical"
+                    android:minHeight="@dimen/touch_target"
+                    android:orientation="horizontal"
+                    android:paddingTop="14dp"
+                    android:paddingBottom="14dp">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/settings_ledger_current"
+                            android:textColor="@color/ink"
+                            android:textSize="@dimen/text_body" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="@string/settings_ledger_current_note"
+                            android:textColor="@color/ink_3"
+                            android:textSize="@dimen/text_micro" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/value_ledger"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="@dimen/space_3"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:maxWidth="150dp"
+                        android:textColor="@color/ink_2"
+                        android:textSize="@dimen/text_body_small"
+                        tools:text="默认账本 · 12 笔" />
+
+                    <ImageView
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:layout_marginStart="@dimen/space_1"
+                        android:contentDescription="@null"
+                        android:src="@drawable/ic_chevron_right"
+                        android:tint="@color/ink_3" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- ==================== 分组三：账本备份（2026-10-08） ==================== -->
+            <!--
+              导出 / 导入各占一行。放在设置页而不是账本页，是因为它是低频、
+              「一次性的迁移动作」，而账本页每天都要翻——低频动作不该占高频页面的位置。
+              导出的范围是"当前账本"。
+            -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/space_6"
+                android:letterSpacing="0.12"
+                android:text="@string/settings_group_backup"
+                android:textColor="@color/ink_3"
+                android:textSize="@dimen/text_micro"
+                android:textStyle="bold" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/space_2"
+                android:background="@drawable/bg_card"
+                android:divider="@drawable/divider_line"
+                android:orientation="vertical"
+                android:paddingStart="@dimen/space_4"
+                android:paddingEnd="@dimen/space_4"
+                android:showDividers="middle">
+
+                <!-- 导出账本 -->
+                <LinearLayout
+                    android:id="@+id/row_export"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:gravity="center_vertical"
+                    android:minHeight="@dimen/touch_target"
+                    android:orientation="horizontal"
+                    android:paddingTop="14dp"
+                    android:paddingBottom="14dp">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/settings_export"
+                            android:textColor="@color/ink"
+                            android:textSize="@dimen/text_body" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="@string/settings_export_hint"
+                            android:textColor="@color/ink_3"
+                            android:textSize="@dimen/text_micro" />
+                    </LinearLayout>
+
+                    <ImageView
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:layout_marginStart="@dimen/space_1"
+                        android:contentDescription="@null"
+                        android:src="@drawable/ic_chevron_right"
+                        android:tint="@color/ink_3" />
+                </LinearLayout>
+
+                <!-- 导入账本 -->
+                <LinearLayout
+                    android:id="@+id/row_import"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:gravity="center_vertical"
+                    android:minHeight="@dimen/touch_target"
+                    android:orientation="horizontal"
+                    android:paddingTop="14dp"
+                    android:paddingBottom="14dp">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/settings_import"
+                            android:textColor="@color/ink"
+                            android:textSize="@dimen/text_body" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="@string/settings_import_hint"
+                            android:textColor="@color/ink_3"
+                            android:textSize="@dimen/text_micro" />
+                    </LinearLayout>
+
+                    <ImageView
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:layout_marginStart="@dimen/space_1"
+                        android:contentDescription="@null"
+                        android:src="@drawable/ic_chevron_right"
+                        android:tint="@color/ink_3" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- ==================== 分组四：模型与数据（2026-10-11 下移至此） ==================== -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/space_6"
+                android:letterSpacing="0.12"
+                android:text="@string/settings_group_model"
+                android:textColor="@color/ink_3"
+                android:textSize="@dimen/text_micro"
+                android:textStyle="bold" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/space_2"
+                android:background="@drawable/bg_card"
+                android:divider="@drawable/divider_line"
+                android:orientation="vertical"
+                android:paddingStart="@dimen/space_4"
+                android:paddingEnd="@dimen/space_4"
+                android:showDividers="middle">
+
+                <!-- 模型服务商 -->
+                <LinearLayout
+                    android:id="@+id/row_provider"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:gravity="center_vertical"
+                    android:minHeight="@dimen/touch_target"
+                    android:orientation="horizontal"
+                    android:paddingTop="14dp"
+                    android:paddingBottom="14dp">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/settings_provider"
+                            android:textColor="@color/ink"
+                            android:textSize="@dimen/text_body" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="@string/settings_provider_note"
+                            android:textColor="@color/ink_3"
+                            android:textSize="@dimen/text_micro" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/value_provider"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="@dimen/space_3"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:maxWidth="120dp"
+                        android:textColor="@color/ink_2"
+                        android:textSize="@dimen/text_body_small"
+                        tools:text="硅基流动" />
+
+                    <ImageView
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:layout_marginStart="@dimen/space_1"
+                        android:contentDescription="@null"
+                        android:src="@drawable/ic_chevron_right"
+                        android:tint="@color/ink_3" />
+                </LinearLayout>
+
+                <!-- 模型名 -->
+                <LinearLayout
+                    android:id="@+id/row_model"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:gravity="center_vertical"
+                    android:minHeight="@dimen/touch_target"
+                    android:orientation="horizontal"
+                    android:paddingTop="14dp"
+                    android:paddingBottom="14dp">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/settings_model"
+                        android:textColor="@color/ink"
+                        android:textSize="@dimen/text_body" />
+
+                    <TextView
+                        android:id="@+id/value_model"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="@dimen/space_3"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:maxWidth="150dp"
+                        android:textColor="@color/ink_2"
+                        android:textSize="@dimen/text_body_small"
+                        tools:text="deepseek-chat" />
+
+                    <ImageView
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:layout_marginStart="@dimen/space_1"
+                        android:contentDescription="@null"
+                        android:src="@drawable/ic_chevron_right"
+                        android:tint="@color/ink_3" />
+                </LinearLayout>
+
+                <!-- API Key -->
+                <LinearLayout
+                    android:id="@+id/row_api_key"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:gravity="center_vertical"
+                    android:minHeight="@dimen/touch_target"
+                    android:orientation="horizontal"
+                    android:paddingTop="14dp"
+                    android:paddingBottom="14dp">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/settings_api_key"
+                            android:textColor="@color/ink"
+                            android:textSize="@dimen/text_body" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="@string/settings_api_key_hint"
+                            android:textColor="@color/ink_3"
+                            android:textSize="@dimen/text_micro" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/value_api_key"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="@dimen/space_3"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:maxWidth="120dp"
+                        android:textColor="@color/ink_2"
+                        android:textSize="@dimen/text_body_small"
+                        tools:text="已配置" />
+
+                    <ImageView
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:layout_marginStart="@dimen/space_1"
+                        android:contentDescription="@null"
+                        android:src="@drawable/ic_chevron_right"
+                        android:tint="@color/ink_3" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- ==================== 分组五：其他（2026-10-08） ==================== -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/space_6"
+                android:letterSpacing="0.12"
+                android:text="@string/settings_group_other"
+                android:textColor="@color/ink_3"
+                android:textSize="@dimen/text_micro"
+                android:textStyle="bold" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/space_2"
+                android:background="@drawable/bg_card"
+                android:orientation="vertical"
+                android:paddingStart="@dimen/space_4"
+                android:paddingEnd="@dimen/space_4">
+
+                <!-- 意见反馈：点开是一个只有一个输入框的表单，发到写死的收件邮箱 -->
+                <LinearLayout
+                    android:id="@+id/row_feedback"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:gravity="center_vertical"
+                    android:minHeight="@dimen/touch_target"
+                    android:orientation="horizontal"
+                    android:paddingTop="14dp"
+                    android:paddingBottom="14dp">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/settings_feedback"
+                            android:textColor="@color/ink"
+                            android:textSize="@dimen/text_body" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="@string/settings_feedback_hint"
+                            android:textColor="@color/ink_3"
+                            android:textSize="@dimen/text_micro" />
+                    </LinearLayout>
+
+                    <ImageView
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:layout_marginStart="@dimen/space_1"
+                        android:contentDescription="@null"
+                        android:src="@drawable/ic_chevron_right"
+                        android:tint="@color/ink_3" />
+                </LinearLayout>
+            </LinearLayout>
+
+        </LinearLayout>
+    </ScrollView>
+
+</LinearLayout>

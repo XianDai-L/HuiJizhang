@@ -4,6 +4,7 @@ import com.wisebook.app.data.local.WiseBookDatabase;
 import com.wisebook.app.data.local.dao.SettingDao;
 import com.wisebook.app.data.local.entity.SettingEntity;
 import com.wisebook.app.domain.model.CategoryScheme;
+import com.wisebook.app.domain.model.LedgerCategoryMode;
 import com.wisebook.app.domain.model.ConfirmMode;
 
 /**
@@ -48,6 +49,14 @@ public final class SettingsRepository {
     /** 默认「标准」方案：D1-A §2 的二级清单已定稿，说明它是主推形态 */
     public static final CategoryScheme DEFAULT_CATEGORY_SCHEME = CategoryScheme.STANDARD;
 
+    /**
+     * 账本分类默认显示「标准」= 完整路径（2026-10-08）。
+     *
+     * <p>与升级迁移里回填的值必须是同一个，否则新装与升级两种设备的默认表现会不一样。
+     */
+    public static final LedgerCategoryMode DEFAULT_LEDGER_CATEGORY_MODE =
+            LedgerCategoryMode.STANDARD;
+
     /** 约数词典版本，对应 D1-A §5 的 v1 清单 */
     public static final int CURRENT_APPROX_DICT_VERSION = 1;
 
@@ -90,6 +99,7 @@ public final class SettingsRepository {
         settings.largeThresholdCents = DEFAULT_LARGE_THRESHOLD_CENTS;
         settings.clarifyMaxRounds = DEFAULT_CLARIFY_MAX_ROUNDS;
         settings.categoryScheme = DEFAULT_CATEGORY_SCHEME;
+        settings.ledgerCategoryMode = DEFAULT_LEDGER_CATEGORY_MODE;
         settings.approxDictVersion = CURRENT_APPROX_DICT_VERSION;
         return settings;
     }

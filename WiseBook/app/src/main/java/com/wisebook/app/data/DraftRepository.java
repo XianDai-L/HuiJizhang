@@ -5,6 +5,7 @@ import androidx.lifecycle.LiveData;
 import com.wisebook.app.data.local.EvidenceStore;
 import com.wisebook.app.data.local.WiseBookDatabase;
 import com.wisebook.app.data.local.entity.DraftEntity;
+import com.wisebook.app.data.local.entity.EntryEntity;
 import com.wisebook.app.data.local.entity.SettingEntity;
 import com.wisebook.app.data.remote.LlmRuntime;
 import com.wisebook.app.domain.classify.CategoryTree;
@@ -13,13 +14,16 @@ import com.wisebook.app.domain.confirm.ConfirmPolicy;
 import com.wisebook.app.domain.draft.DedupeKey;
 import com.wisebook.app.domain.draft.DraftStateMachine;
 import com.wisebook.app.domain.draft.DraftTransition;
+import com.wisebook.app.domain.model.DraftSource;
 import com.wisebook.app.domain.model.DraftStatus;
+import com.wisebook.app.domain.model.OccurredAtSource;
 import com.wisebook.app.input.DraftParseResult;
 import com.wisebook.app.input.chat.ChatDraftParser;
 import com.wisebook.app.input.image.ImageDraftParser;
 import com.wisebook.app.input.image.ImageInput;
 import com.wisebook.llm.ImageReader;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
@@ -119,6 +123,7 @@ public final class DraftRepository {
     private final EntryRepository entryRepository;
     private final LlmRuntime llmRuntime;
     private final EvidenceStore evidenceStore;
+    private final CurrentLedger currentLedger;
     private final ZoneId zone;
 
     public DraftRepository(WiseBookDatabase database,
@@ -126,9 +131,10 @@ public final class DraftRepository {
                            CategoryRepository categoryRepository,
                            EntryRepository entryRepository,
                            LlmRuntime llmRuntime,
-                           EvidenceStore evidenceStore) {
+                           EvidenceStore evidenceStore,
+                           CurrentLedger currentLedger) {
         this(database, settingsRepository, categoryRepository, entryRepository, llmRuntime,
-                evidenceStore, ZoneId.systemDefault());
+                evidenceStore, currentLedger, ZoneId.systemDefault());
     }
 
     /** 允许注入时区，便于测试固定「现在」 */
@@ -138,6 +144,7 @@ public final class DraftRepository {
                            EntryRepository entryRepository,
                            LlmRuntime llmRuntime,
                            EvidenceStore evidenceStore,
+                           CurrentLedger currentLedger,
                            ZoneId zone) {
         this.database = database;
         this.settingsRepository = settingsRepository;
@@ -145,23 +152,27 @@ public final class DraftRepository {
         this.entryRepository = entryRepository;
         this.llmRuntime = llmRuntime;
         this.evidenceStore = evidenceStore;
+        this.currentLedger = currentLedger;
         this.zone = zone;
     }
 
     // ------------------------------------------------------------------ 提交
 
     /**
-     * 提交一句输入：解析、落草稿，能免确认就直接落账。
+     * 提交一句输入：解析、按笔落草稿，能免确认的就直接落账。
+     *
+     * <p><b>一句话可以拆出多笔</b>（决策 50）：模型返回的是数组，这里对每一笔都走一遍
+     * {@link #persist}，彼此不共享状态、只共享批次标签——与截图入口完全同一种处理。
      *
      * <p><b>阻塞方法，禁止在主线程调用。</b>
      */
-    public SubmitReport submit(String input) {
+    public BatchSubmitReport submit(String input) {
         return submit(input, LocalDateTime.now(zone));
     }
 
     /** @param now 「现在」——既是草稿创建时间，也是「今天/昨天」的参照点 */
-    public SubmitReport submit(String input, LocalDateTime now) {
-        long userId = WiseBookDatabase.DEFAULT_USER_ID;
+    public BatchSubmitReport submit(String input, LocalDateTime now) {
+        long userId = currentLedger.id();
         SettingEntity settings = settingsRepository.loadOrInit(userId);
         CategoryTree tree = categoryRepository.loadTree(userId);
 
@@ -175,45 +186,67 @@ public final class DraftRepository {
 
         DraftParseResult parsed = parser.parse(input, now);
         if (!parsed.isOk()) {
-            return new SubmitReport(
+            // 解析失败仍然包成一个"一笔都没落成"的报告：
+            // 界面拿到的形状与成功时一致（结论 + 说明 + 没有可跳转的落点），
+            // 就不必为降级单独写一条分支
+            SubmitReport degraded = new SubmitReport(
                     new SubmitOutcome(SubmitOutcome.Kind.DEGRADED, -1L, -1L),
                     "没解析出来，请手动填写",
                     parsed.message(),
                     parsed.attemptCount(),
                     false,
                     null);
+            return BatchSubmitReport.of(Collections.singletonList(degraded), TEXT_ITEM_NOUN);
         }
 
-        return persist(parsed.firstDraft(), settings, tree,
-                parsed.attemptCount(), parsed.firstAttemptSucceeded(), parsed.rawPayload());
+        List<SubmitReport> reports = new ArrayList<>();
+        for (DraftEntity draft : parsed.drafts()) {
+            reports.add(persist(draft, settings, tree, parsed.attemptCount(),
+                    parsed.firstAttemptSucceeded(), parsed.rawPayload()));
+        }
+        return BatchSubmitReport.of(reports, TEXT_ITEM_NOUN);
     }
 
-    // ------------------------------------------------------------------ 截图提交
+    // ------------------------------------------------------------------ 提交（批量）
+
+    /** 文字入口的"这一批是什么"：界面文案用，如「这句话有 2 笔」 */
+    private static final String TEXT_ITEM_NOUN = "这句话";
+
+    /** 截图入口的对应说法 */
+    private static final String IMAGE_ITEM_NOUN = "这张图";
 
     /**
-     * 一次截图提交的结果：一图多笔就是<b>多条</b> {@link SubmitReport}。
+     * 一次批量提交的结果：所辖的每一笔都是一条 {@link SubmitReport}。
+     *
+     * <p>两个入口都用它——文字入口一句话可能拆出多笔（决策 50），截图入口一图多笔（决策 43）。
+     * 之所以共用一个类型而不是各写一个，是因为它们的形状本来就一样：
+     * "若干笔各自判定、各自落库，再收拢起来给界面看"。二者唯一的差别是文案里的
+     * {@code itemNoun}（「这句话」/「这张图」），那也是靠参数而不是靠复制一份代码解决的。
      *
      * <p>刻意不做"批量专用规则"：每一笔都单独走一遍 {@code persist}
-     * （去重、档位、免确认直落全都一样），所以这个类只负责把结果收拢起来给界面看。
+     * （去重、档位、免确认直落全都一样），彼此<b>不共享状态</b>，只共享一个批次标签。
      */
-    public static final class ImageSubmitReport {
+    public static final class BatchSubmitReport {
 
-        /** 逐笔的结果，顺序与图里从上到下一致 */
+        /** 逐笔的结果，顺序与原话 / 原图里一致 */
         public final List<SubmitReport> reports;
-        /** 连转写都没成功时的原因；成功时为 {@code null} */
+        /** 连解析都没成功时的原因；成功时为 {@code null} */
         public final String failure;
+        /** 文案里"这一批是什么"（这句话 / 这张图） */
+        private final String itemNoun;
 
-        private ImageSubmitReport(List<SubmitReport> reports, String failure) {
+        private BatchSubmitReport(List<SubmitReport> reports, String failure, String itemNoun) {
             this.reports = Collections.unmodifiableList(new ArrayList<>(reports));
             this.failure = failure;
+            this.itemNoun = itemNoun;
         }
 
-        static ImageSubmitReport failed(String reason) {
-            return new ImageSubmitReport(Collections.<SubmitReport>emptyList(), reason);
+        static BatchSubmitReport failed(String reason, String itemNoun) {
+            return new BatchSubmitReport(Collections.<SubmitReport>emptyList(), reason, itemNoun);
         }
 
-        static ImageSubmitReport of(List<SubmitReport> reports) {
-            return new ImageSubmitReport(reports, null);
+        static BatchSubmitReport of(List<SubmitReport> reports, String itemNoun) {
+            return new BatchSubmitReport(reports, null, itemNoun);
         }
 
         public boolean isOk() {
@@ -247,8 +280,8 @@ public final class DraftRepository {
         }
 
         /**
-         * 汇总成一句话。单笔时沿用文字入口的说法（用户的体验应当是连续的），
-         * 多笔时把「几笔入账、几笔待核对」讲清楚——<b>这张图被读出了几笔</b>本身
+         * 汇总成一句话。单笔时沿用那一笔自己的说法（用户的体验应当是连续的），
+         * 多笔时把「几笔入账、几笔待核对」讲清楚——<b>这一批被读出了几笔</b>本身
          * 就是用户最想确认的事：模型既可能漏读，也可能把一笔读成两笔。
          */
         public String summary() {
@@ -262,7 +295,8 @@ public final class DraftRepository {
             int pending = needsConfirmCount();
             int degraded = reports.size() - posted - pending;
 
-            StringBuilder text = new StringBuilder("这张图有 ").append(reports.size()).append(" 笔：");
+            StringBuilder text = new StringBuilder(itemNoun).append("有 ").append(reports.size())
+                    .append(" 笔：");
             if (posted > 0) {
                 text.append("已自动记账 ").append(posted).append(" 笔");
             }
@@ -330,22 +364,26 @@ public final class DraftRepository {
      * <p>一图多笔在这里就是"连着提交好几笔"：每笔独立走去重与档位判定，
      * 彼此<b>不共享状态</b>（D1 §4.2），只共享一个 {@code batch_id} 标签。
      * 这样"一批里有一笔没解析出来"不会连累其它笔。
+     *
+     * <p>它与 {@link #submit(String)} 的差别只在三处：多一次转写、有原图要留、
+     * 文案里说「这张图」。判据与落库路径是同一份代码。
      */
-    public ImageSubmitReport submitImage(byte[] imageBytes, String mimeType, String displayName) {
+    public BatchSubmitReport submitImage(byte[] imageBytes, String mimeType, String displayName) {
         return submitImage(imageBytes, mimeType, displayName, LocalDateTime.now(zone));
     }
 
     /** @param now 「现在」，相对时间的参照点；也是批次标签的来源 */
-    public ImageSubmitReport submitImage(byte[] imageBytes, String mimeType, String displayName,
+    public BatchSubmitReport submitImage(byte[] imageBytes, String mimeType, String displayName,
                                         LocalDateTime now) {
         ImageReader imageReader = llmRuntime.imageReader();
         if (imageReader == null) {
             // 没有 OCR 链路时不去白跑一次网络：直接说清缺哪一家的 Key
-            return ImageSubmitReport.failed(
-                    "截图记账要用硅基流动的 OCR 模型。到「设置」里填一个硅基流动的 Key 再试");
+            return BatchSubmitReport.failed(
+                    "截图记账要用硅基流动的 OCR 模型。到「设置」里填一个硅基流动的 Key 再试",
+                    IMAGE_ITEM_NOUN);
         }
 
-        long userId = WiseBookDatabase.DEFAULT_USER_ID;
+        long userId = currentLedger.id();
         SettingEntity settings = settingsRepository.loadOrInit(userId);
         CategoryTree tree = categoryRepository.loadTree(userId);
 
@@ -355,7 +393,7 @@ public final class DraftRepository {
         DraftParseResult parsed = parser.parse(
                 new ImageInput(imageBytes, mimeType, displayName), now);
         if (!parsed.isOk()) {
-            return ImageSubmitReport.failed(parsed.message());
+            return BatchSubmitReport.failed(parsed.message(), IMAGE_ITEM_NOUN);
         }
 
         // 解析成功之后才落盘原图：没有草稿就没有引用它的地方，
@@ -369,7 +407,7 @@ public final class DraftRepository {
             reports.add(persist(draft, settings, tree, parsed.attemptCount(),
                     parsed.firstAttemptSucceeded(), parsed.rawPayload()));
         }
-        return ImageSubmitReport.of(reports);
+        return BatchSubmitReport.of(reports, IMAGE_ITEM_NOUN);
     }
 
     /**
@@ -401,10 +439,21 @@ public final class DraftRepository {
                                String rawPayload) {
         draft.updatedAt = System.currentTimeMillis();
         draft.dedupeKey = dedupeKeyOf(draft);
+        long ledgerId = ledgerOf(draft);
 
         boolean duplicate = draft.dedupeKey != null
-                && database.entryDao().countByDedupeKey(draft.dedupeKey) > 0;
+                && database.entryDao().countByDedupeKey(draft.dedupeKey, ledgerId) > 0;
+        if (!duplicate) {
+            // 严格键没命中时的兜底：发生时间是猜出来的那一笔，键本身就跟着算错了
+            // （见 isSuspectedDuplicateByMoment），得换一个不看日期的判据再捞一次
+            duplicate = isSuspectedDuplicateByMoment(draft);
+        }
 
+        // 第三个参数是「本次输入拆出几笔」（D1 §5.2 条件 8：拆分场景一律确认）。
+        // 这里恒传 1，也就是**这条规则不启用**——2026-10-08 用户拍板：多笔时每笔各判各的，
+        // 满足免确认条件就直接入账（说了「早饭8块，打车17」不该点两次确认）。
+        // 这不是漏传：真值就在调用方手上（draft 所属批次的大小），要启用只需把它传进来。
+        // 注意文字与截图两个入口必须一起改，否则同为多笔、行为不一致。
         ConfirmPolicy.Verdict verdict = ConfirmPolicy.decide(draft, duplicate, 1,
                 settings.confirmMode, settings.largeThresholdCents);
 
@@ -481,14 +530,14 @@ public final class DraftRepository {
 
     // ------------------------------------------------------------------ 列表
 
-    /** 还挂在用户手上的草稿（「待处理」列表），随数据库变化自动刷新 */
+    /** 还挂在用户手上的草稿（「待处理」列表），随数据库变化自动刷新。限本账本 */
     public LiveData<List<DraftEntity>> observeOpenDrafts() {
-        return database.draftDao().observeOpen();
+        return database.draftDao().observeOpen(currentLedger.id());
     }
 
-    /** <b>阻塞方法。</b>用于首页显示待处理数量这类一次性读取 */
+    /** <b>阻塞方法。</b>用于首页显示待处理数量这类一次性读取。限本账本 */
     public int countOpenDrafts() {
-        return database.draftDao().findOpen().size();
+        return database.draftDao().findOpen(currentLedger.id()).size();
     }
 
     public DraftEntity findDraft(long draftId) {
@@ -596,12 +645,12 @@ public final class DraftRepository {
      * 设置只该读一次——为 20 行各查一遍同一个单行表是白费力气。
      */
     public SettingEntity loadSettings() {
-        return settingsRepository.loadOrInit(WiseBookDatabase.DEFAULT_USER_ID);
+        return settingsRepository.loadOrInit(currentLedger.id());
     }
 
     public String explainWhyNeedsConfirm(DraftEntity draft, SettingEntity settings) {
         boolean duplicate = draft.dedupeKey != null
-                && database.entryDao().countByDedupeKey(draft.dedupeKey) > 0;
+                && database.entryDao().countByDedupeKey(draft.dedupeKey, ledgerOf(draft)) > 0;
         return ConfirmPolicy.decide(draft, duplicate, 1,
                 settings.confirmMode, settings.largeThresholdCents).reasonText();
     }
@@ -654,7 +703,7 @@ public final class DraftRepository {
      */
     public int archiveStale() {
         long cutoff = System.currentTimeMillis() - OPEN_TIMEOUT_MILLIS;
-        List<DraftEntity> stale = database.draftDao().findStaleOpen(cutoff);
+        List<DraftEntity> stale = database.draftDao().findStaleOpen(currentLedger.id(), cutoff);
         long now = System.currentTimeMillis();
         for (DraftEntity draft : stale) {
             draft.status = DraftStateMachine.apply(draft.status, DraftTransition.EXPIRE);
@@ -677,6 +726,64 @@ public final class DraftRepository {
             return null;
         }
         return DedupeKey.of(draft.direction, draft.amountCents, draft.occurredAt, draft.merchant);
+    }
+
+    /**
+     * 一笔草稿属于哪个账本。
+     *
+     * <p>优先用草稿自己的 {@code user_id}（它就是被记进去的那个账本）；
+     * 万一构造时没填（测试里手工造的草稿），退回「当前账本」，
+     * 免得去重查询落在一个不存在的账本上而漏判。
+     */
+    private long ledgerOf(DraftEntity draft) {
+        return draft.userId > 0L ? draft.userId : currentLedger.id();
+    }
+
+    /**
+     * 发生时间不可信时的兜底判重（2026-10-08）。
+     *
+     * <p><b>它治的是这个症状</b>：同一笔账单在两屏重叠的截图里各出现一次，
+     * 其中一屏的日期没被读到（比如分组标题被裁掉），于是它的 {@code occurred_at}
+     * 落到了今天——去重键里含发生时间，两条键就此分道扬镳，谁也判不出重复，
+     * 双双免确认直落，账本里出现两笔一样的账。
+     *
+     * <p>所以当这笔的时间<b>不是图上明确读到的</b>（来源非 {@code EXPLICIT}）时，
+     * 退到「同方向 + 同金额 + 同时分」这个更粗、但依然很强的判据上：
+     * 精确到分的金额与精确到分钟的时刻同时相同，几乎只能是同一笔。
+     * 反过来误伤的代价也可控——命中的结果只是进确认页让用户看一眼，
+     * 绝不自动合并（D1 §7 的老规矩）。
+     *
+     * <p>两个边界：
+     * <ul>
+     *   <li><b>只对截图入口生效</b>。文字入口说「打车 30」本来就没提时间，
+     *       落 {@code INFERRED} 是常态，拿它去比时刻没有意义。</li>
+     *   <li><b>必填字段不齐时不判</b>。算不出键的草稿本来就要进确认流程，
+     *       轮不到"免确认之前先查重复"这一步（与 {@link #dedupeKeyOf} 同一种处理）。</li>
+     * </ul>
+     */
+    private boolean isSuspectedDuplicateByMoment(DraftEntity draft) {
+        if (draft.source != DraftSource.IMAGE
+                || draft.direction == null
+                || draft.amountCents == null
+                || draft.occurredAt == null
+                || draft.occurredAtSource == OccurredAtSource.EXPLICIT) {
+            return false;
+        }
+        List<EntryEntity> sameAmount = database.entryDao()
+                .findByDirectionAndAmount(draft.direction, draft.amountCents, ledgerOf(draft));
+        for (EntryEntity entry : sameAmount) {
+            if (sameHourAndMinute(entry.occurredAt, draft.occurredAt)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** 两个时间戳在本地时区下的「时:分」是否相同。用 {@code zone} 而不是系统默认时区，测试才可固定 */
+    private boolean sameHourAndMinute(long one, long other) {
+        LocalDateTime left = LocalDateTime.ofInstant(Instant.ofEpochMilli(one), zone);
+        LocalDateTime right = LocalDateTime.ofInstant(Instant.ofEpochMilli(other), zone);
+        return left.getHour() == right.getHour() && left.getMinute() == right.getMinute();
     }
 
     private static String joinReasons(String extra, String reason) {

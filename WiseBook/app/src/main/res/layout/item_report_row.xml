@@ -1,36 +1,80 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  报表的一行：分类色块 + 名称 + 占比 + 金额，下面一条占比条。
+  用横向条而不是饼图：长度比面积好比较，中文分类名在饼图里也放不下。
+-->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:gravity="center_vertical"
-    android:orientation="horizontal"
-    android:paddingTop="10dp"
-    android:paddingBottom="10dp">
+    android:orientation="vertical"
+    android:paddingTop="11dp"
+    android:paddingBottom="11dp">
 
-    <TextView
-        android:id="@+id/row_name"
-        android:layout_width="0dp"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:textSize="15sp"
-        tools:text="餐饮（12 笔）" />
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
 
-    <TextView
-        android:id="@+id/row_share"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginEnd="12dp"
-        android:textColor="@color/muted"
-        android:textSize="13sp"
-        tools:text="42.3%" />
+        <TextView
+            android:id="@+id/row_cat"
+            android:layout_width="26dp"
+            android:layout_height="26dp"
+            android:background="@drawable/bg_tile"
+            android:gravity="center"
+            android:textColor="@color/ink_2"
+            android:textSize="@dimen/text_micro"
+            android:textStyle="bold"
+            tools:backgroundTint="@color/cat_food_bg"
+            tools:text="餐"
+            tools:textColor="@color/cat_food" />
 
-    <TextView
-        android:id="@+id/row_amount"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:textSize="15sp"
-        android:textStyle="bold"
-        tools:text="1,370.00 元" />
+        <TextView
+            android:id="@+id/row_name"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/space_3"
+            android:layout_weight="1"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textColor="@color/ink"
+            android:textSize="@dimen/text_body_small"
+            tools:text="餐饮" />
+
+        <TextView
+            android:id="@+id/row_share"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFeatureSettings="tnum"
+            android:textColor="@color/ink_3"
+            android:textSize="@dimen/text_micro"
+            tools:text="42.3%" />
+
+        <TextView
+            android:id="@+id/row_amount"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/space_3"
+            android:fontFeatureSettings="tnum"
+            android:textColor="@color/ink"
+            android:textSize="@dimen/text_body_small"
+            android:textStyle="bold"
+            tools:text="1,370.00" />
+    </LinearLayout>
+
+    <!-- 占比条：缩进到与分类名对齐，视觉上从属于上面那一行 -->
+    <ProgressBar
+        android:id="@+id/row_bar"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent"
+        android:layout_height="7dp"
+        android:layout_marginStart="38dp"
+        android:layout_marginTop="@dimen/space_2"
+        android:max="1000"
+        android:progressBackgroundTint="@color/surface_sunken"
+        android:progressDrawable="@drawable/progress_rounded"
+        android:progressTint="@color/brand"
+        tools:progress="423" />
 
 </LinearLayout>

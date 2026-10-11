@@ -1,9 +1,19 @@
 package com.wisebook.app.ui;
 
+import android.content.Context;
+import android.text.Spannable;
+import android.text.SpannableString;
+import android.text.SpannableStringBuilder;
+import android.text.style.ForegroundColorSpan;
+
+import androidx.core.content.ContextCompat;
+
+import com.wisebook.app.R;
 import com.wisebook.app.data.local.entity.DraftEntity;
 import com.wisebook.app.data.local.entity.EntryEntity;
 import com.wisebook.app.domain.classify.CategoryTree;
 import com.wisebook.app.domain.model.ConfidenceFlag;
+import com.wisebook.app.domain.model.Direction;
 import com.wisebook.app.domain.model.OccurredAtSource;
 import com.wisebook.money.AmountParseResult;
 
@@ -14,6 +24,8 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * 把草稿渲染成给人看的文字。
@@ -57,18 +69,50 @@ public final class DraftFormatter {
      * <p>估算要显式标出来：金额是「总价 45 里我只花了我的那份」这类折算出来的，
      * 用户扫列表时有权知道哪几笔不是原句里的原始数字。
      */
-    public static String entrySubline(EntryEntity entry) {
-        StringBuilder builder = new StringBuilder(dateTime(entry.occurredAt));
-        if (entry.merchant != null && !entry.merchant.trim().isEmpty()) {
-            builder.append(" · ").append(entry.merchant);
+    /** 方向的口语说法，用在列表副行上（{@code 支出 · 餐饮 › 咖啡}） */
+    public static String directionLabel(Direction direction) {
+        if (direction == null) {
+            return "方向未定";
         }
+        switch (direction) {
+            case INCOME:
+                return "收入";
+            case TRANSFER:
+                return "转账";
+            case EXPENSE:
+            default:
+                return "支出";
+        }
+    }
+
+    /**
+     * 账本行的副行：{@code 10-07 08:42 · 支出 · 餐饮 › 咖啡 · 微信}。
+     *
+     * <p>2026-10-07 改：原来这里拼的是「时间 · <b>商户</b> · 支付方式」，而主行显示的也是商户
+     * （没有商户时才退回分类路径），于是同一个名字在一行里出现两次。
+     * 现在副行改给<b>方向 + 分类路径</b>——这两样恰恰是主行没有的信息，
+     * 一眼就能看出「这笔是支出还是转账、归到哪一类」。
+     *
+     * <p>分类路径里的层级分隔符会染色（见 {@link #coloredPath}），
+     * 与详情页、选分类弹窗保持同一种读法。
+     */
+    public static CharSequence entrySubline(Context context, CategoryTree tree, EntryEntity entry) {
+        SpannableStringBuilder builder = new SpannableStringBuilder();
+        builder.append(dateTime(entry.occurredAt));
+        builder.append(" · ").append(directionLabel(entry.direction));
+
+        builder.append(" · ");
+        int pathStart = builder.length();
+        builder.append(categoryPath(tree, entry.categoryId));
+        colorSeparators(context, builder, pathStart);
+
         if (entry.paymentMethod != null) {
             builder.append(" · ").append(entry.paymentMethod.label());
         }
         if (entry.amountIsEstimated) {
             builder.append(" · 估算");
         }
-        return builder.toString();
+        return builder;
     }
 
     /** 账本列表里的「解析方式」标记：文字 / 图片 / 语音 */
@@ -88,6 +132,17 @@ public final class DraftFormatter {
     /** 千分比转成百分比文本，如 {@code 423} → {@code 42.3%} */
     public static String percent(int permille) {
         return String.format(Locale.CHINA, "%.1f%%", permille / 10.0);
+    }
+
+    /**
+     * 带千分位、不带单位的金额，如 {@code 3,240.00}。
+     *
+     * <p>给「单位已经写在旁边」的地方用：首页概览条要的是 {@code ¥3,240.00}，
+     * 用 {@link #groupedAmount} 会得到 {@code 3,240.00 元}，前面再加 ¥ 就成了
+     * 「¥3,240.00 元」——一个数字两个单位。分位与正负号的处理与 groupedAmount 一致。
+     */
+    public static String groupedYuan(long cents) {
+        return String.format(Locale.CHINA, "%,d.%02d", cents / 100, Math.abs(cents % 100));
     }
 
     /** 分类占比变化文本；分类树还没加载好时给一个空串，让界面自己决定怎么显示 */
@@ -136,6 +191,46 @@ public final class DraftFormatter {
         }
         String path = tree.pathOf(categoryId);
         return path == null ? "分类未定" : path;
+    }
+
+    /** 分类路径里的层级分隔符。两种写法都要认：库里可能存的是全角箭头 */
+    private static final Pattern PATH_SEPARATOR = Pattern.compile("[>›]");
+
+    /**
+     * 把分类路径里的分隔符染成品牌色，如 {@code 餐饮 > 咖啡}。
+     *
+     * <p>那个符号是<b>层级标记、不是内容</b>。染成蓝色之后，用户扫过去读到的是
+     * 分类名，符号退到背景里；又不至于完全看不见——它仍在告诉人"这是一条路径"。
+     */
+    public static CharSequence coloredPath(Context context, String path) {
+        if (path == null || path.isEmpty()) {
+            return path == null ? "" : path;
+        }
+        SpannableString styled = new SpannableString(path);
+        int color = ContextCompat.getColor(context, R.color.brand);
+        Matcher matcher = PATH_SEPARATOR.matcher(path);
+        while (matcher.find()) {
+            styled.setSpan(new ForegroundColorSpan(color), matcher.start(), matcher.end(),
+                    Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+        }
+        return styled;
+    }
+
+    /**
+     * 给已经拼好的整行文字里、从 {@code from} 开始的那段分类路径染分隔符。
+     *
+     * <p>副行是「时间 · 方向 · 路径 · 支付」拼起来的，不能把整行交给 {@link #coloredPath}
+     * ——那会把时间里的冒号之类的也算进去。所以这里只处理路径那一段。
+     */
+    private static void colorSeparators(Context context, SpannableStringBuilder builder, int from) {
+        int color = ContextCompat.getColor(context, R.color.brand);
+        Matcher matcher = PATH_SEPARATOR.matcher(builder.toString());
+        while (matcher.find()) {
+            if (matcher.start() >= from) {
+                builder.setSpan(new ForegroundColorSpan(color), matcher.start(), matcher.end(),
+                        Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+            }
+        }
     }
 
     /** 存疑标签的展示名；没有标签时返回空列表 */

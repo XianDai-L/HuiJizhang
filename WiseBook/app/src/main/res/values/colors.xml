@@ -1,35 +1,100 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  色板。规则只有三条：
+
+  1) 全应用只有一个强调色（brand），其余一律中性 —— 强调色一多就没有重点。
+  2) 支出用墨色、收入用绿色，红色只留给危险操作。
+     自动记账是正常功能，不该被红色警告（沿用原设计判断）。
+  3) 分类色只用于分类图标底，永不参与强调。
+
+  深色模式在 values-night/colors.xml 里覆盖同名项，两边名字必须一一对应。
+-->
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
 
+    <!-- ============ 品牌（唯一强调色） ============ -->
+    <color name="brand">#FF5B4BE0</color>
+    <color name="brand_ink">#FF4638C4</color>
+    <color name="brand_soft">#FFEEEBFF</color>
+    <color name="brand_line">#FFDAD3FF</color>
+
+    <!-- ============ 文字层级 ============ -->
+    <color name="ink">#FF17171B</color>
+    <color name="ink_2">#FF6C6C75</color>
+    <color name="ink_3">#FFA2A2AB</color>
+
+    <!-- ============ 容器 ============ -->
+    <!-- 页面底刻意用暖白而不是纯白：纯白在手机上刺眼，暖白更接近纸 -->
+    <color name="page_bg">#FFF5F5F3</color>
+    <color name="surface">#FFFFFFFF</color>
+    <color name="surface_sunken">#FFEDEDEA</color>
+    <color name="line">#FFE7E7E3</color>
+
+    <!-- ============ 语义 ============ -->
+    <color name="income">#FF0E9F6E</color>
+    <color name="income_soft">#FFE5F6EF</color>
+    <color name="danger">#FFE5484D</color>
+    <color name="danger_soft">#FFFDECEC</color>
+
     <!--
-      免确认直落的账目（D1 §5.3）：浅色底 + 小标记，便于快速扫检。
-      刻意不用醒目的红色——自动落账是正常功能，不是错误，
-      标记只用来提示"这笔我没问你就记了"，点进去可撤销。
+      处理完成的浮动提示。
+      这套颜色<b>不随深浅色切换</b>：浮层自己就是深色的，无论页面是亮是暗，
+      它都得从背景里跳出来。所以定义在 values/ 里就够了，不放进 values-night。
     -->
-    <color name="auto_posted_background">#FFF3F0FB</color>
-    <color name="auto_posted_badge">#FF6A4FB6</color>
+    <color name="toast_surface">#FF1B1B20</color>
+    <color name="toast_up">#FF4ADE9E</color>
+    <color name="toast_up_soft">#294ADE9E</color>
+    <color name="toast_action">#FFA99BFF</color>
+    <color name="toast_bar">#FF7C6BFF</color>
+    <color name="toast_text">#FFFFFFFF</color>
+    <color name="toast_text_dim">#80FFFFFF</color>
+
+    <!-- ============ 首页概览条（深色卡，全屏最重的一块） ============ -->
+    <color name="hero_start">#FF2A2740</color>
+    <color name="hero_end">#FF1A1A21</color>
+    <color name="hero_label">#8CFFFFFF</color>
+    <color name="hero_up">#FF4ADE9E</color>
+
+    <!-- ============ 分类色（只用于分类图标底） ============ -->
+    <color name="cat_food">#FFE8874A</color>
+    <color name="cat_food_bg">#FFFFF0E4</color>
+    <color name="cat_move">#FF4A90E2</color>
+    <color name="cat_move_bg">#FFE8F1FC</color>
+    <color name="cat_shop">#FFC85BC8</color>
+    <color name="cat_shop_bg">#FFFBE9FB</color>
+    <color name="cat_life">#FF12A594</color>
+    <color name="cat_life_bg">#FFE2F5F3</color>
+    <color name="cat_fun">#FFE0A500</color>
+    <color name="cat_fun_bg">#FFFDF3DA</color>
+    <!-- 第 6 组往后循环复用上面五组；这一组给「未分类/其他」兜底 -->
+    <color name="cat_other">#FF7C8798</color>
+    <color name="cat_other_bg">#FFEEF1F5</color>
+
+    <!-- ============ 兼容旧名 ============
+         名字不能删：Java（EntryAdapter）与若干旧布局还在引用。
+         值已并入上面的新色板，语义保持一致。 -->
 
     <!-- 次要信息（时间、商户、占比） -->
-    <color name="muted">#FF6B6B6B</color>
+    <color name="muted">#FF6C6C75</color>
 
-    <!-- 分类选择器的「一级」标签：选中态填充，未选中态描边 -->
-    <color name="category_tab_selected">#FF6A4FB6</color>
+    <!-- 免确认直落的账目：浅紫底 + 小标记。刻意不用红色 -->
+    <color name="auto_posted_background">#FFEEEBFF</color>
+    <color name="auto_posted_badge">#FF5B4BE0</color>
+
+    <!-- 分类选择器的一级标签：选中态填充，未选中态描边 -->
+    <color name="category_tab_selected">#FF5B4BE0</color>
     <color name="category_tab_normal">#00000000</color>
-    <color name="category_tab_stroke">#FFCFCFCF</color>
+    <color name="category_tab_stroke">#FFCFCFD4</color>
 
-    <!-- 「AI 处理详情」面板的底：比正文浅一档，一眼看出这是「附注」而不是正文 -->
-    <color name="pane_background">#FFF5F5F7</color>
+    <!-- 「AI 处理详情」面板的底：比正文浅一档，一眼看出这是附注而不是正文 -->
+    <color name="pane_background">#FFEDEDEA</color>
 
-    <!--
-      底部输入栏。
-      「发送」用与「自动记」标记同一个品牌紫（auto_posted_badge）：整个应用只有这一个强调色，
-      用户不需要重新认识一个颜色。禁用态用中性灰而不是半透明紫——
-      半透明的紫在白底上会显得"淡紫"，看着像可点的样子。
-    -->
-    <color name="composer_field_background">#FFF5F5F7</color>
-    <color name="composer_field_stroke">#FFE0E0E6</color>
-    <color name="composer_send">#FF6A4FB6</color>
+    <!-- 底部输入栏。发送键与 auto_posted_badge 同色 —— 整个应用只有这一个强调色，
+         用户不需要重新认识一个颜色。禁用态用中性灰而不是半透明紫：
+         半透明的紫在白底上会显得「淡紫」，看着像可点的样子。 -->
+    <color name="composer_field_background">#FFFFFFFF</color>
+    <color name="composer_field_stroke">#FFE7E7E3</color>
+    <color name="composer_send">#FF5B4BE0</color>
     <color name="composer_send_disabled">#FFCFCFD4</color>
 </resources>

@@ -31,6 +31,27 @@
 
     <!-- 设置 -->
     <string name="settings_title">设置</string>
+    <string name="settings_group_accounting">记账行为</string>
+    <!-- 账本分组（2026-10-11 多账本）：从「记账行为」里提出来，与它同级 -->
+    <string name="settings_group_ledger">账本</string>
+    <string name="settings_ledger_current">当前账本</string>
+    <string name="settings_ledger_current_note">记账只会记进这个账本，点开可切换</string>
+    <string name="settings_ledger_value">%1$s · %2$d 笔</string>
+    <string name="settings_ledger_none">—</string>
+    <string name="settings_group_model">模型与数据</string>
+    <string name="settings_confirm_mode_note">哪些情况下先问你一句</string>
+    <string name="settings_threshold_note">超过这个数就先确认</string>
+    <string name="category_overview_expense">支出分类</string>
+    <string name="category_overview_income">收入分类</string>
+    <string name="category_overview_summary">共 %1$d 个一级分类 · %2$d 个子分类</string>
+    <string name="category_overview_summary_simple">共 %1$d 个一级分类</string>
+    <string name="category_overview_children">%1$d 个</string>
+    <string name="category_overview_no_child">无子分类</string>
+    <string name="category_overview_value">共 %1$d 个</string>
+    <string name="category_overview_none">—</string>
+
+
+    <string name="settings_provider_note">换一家只是换一个地址与模型名，账目不受影响</string>
     <string name="settings_confirm_mode">确认档位</string>
     <string name="settings_mode_strict">每笔确认：所有草稿都过确认页</string>
     <string name="settings_mode_large">大额确认：小额直接记账，大额或存疑才问</string>
@@ -47,9 +68,60 @@
     <string name="settings_action_save">保存</string>
     <string name="settings_credentials_note">Key 只存在本机应用私有目录，不进源码、不进版本库。</string>
 
+    <!-- 账本备份（2026-10-08）：导出 CSV / 导入。副标题把"能干什么、有什么损失"说清 -->
+    <string name="settings_group_backup">账本备份</string>
+    <string name="settings_export">导出账本</string>
+    <string name="settings_export_hint">存成 CSV：Excel 能打开，也可用来换设备</string>
+    <string name="settings_import">导入账本</string>
+    <!-- 行副标题：只说"收什么文件"，一行放得下 -->
+    <string name="settings_import_hint">支持慧记 CSV 与微信支付账单（xlsx / csv）</string>
+    <!--
+      弹窗说明要说三件事：收哪些文件、重复的怎么处理、会不会覆盖已有的。
+      尤其第三件必须写明——账单导入是"重复不跳过、打标记照常入账"，
+      用户最怕的就是"我再导一遍会不会长出一套重复的账"，答案只有这一句能说清
+    -->
+    <string name="settings_import_message">支持慧记导出的 CSV，以及微信支付账单（xlsx 或 csv）。\n\n导入不会覆盖已有账目。账本 CSV 里本机已有的同一笔会跳过；微信账单会照常导入，与本机已有账目高度相似的那几笔会打上「疑似重复」标记，请在账本里核对后再删。</string>
+    <string name="settings_transfer_title">导入账本</string>
+    <string name="settings_export_done">已导出 %1$d 笔账目</string>
+    <string name="settings_export_empty">还没有账目可导出</string>
+    <string name="settings_export_failed">导出失败：%1$s</string>
+    <string name="settings_import_failed">导入失败：%1$s</string>
+    <string name="settings_import_alipay_unsupported">这是支付宝账单，暂未支持导入。可以先用微信账单，或把明细整理成慧记导出的 CSV。</string>
+    <string name="settings_import_unknown">认不出这个文件。支持慧记导出的 CSV，以及微信支付账单（xlsx 或 csv）。</string>
+    <string name="settings_export_file_name">慧记账本-%1$s.csv</string>
+
+    <!-- 意见反馈（2026-10-08）：一个输入框 + 邮件出口。诊断信息只带环境，不带账目 -->
+    <string name="settings_group_other">其他</string>
+    <string name="settings_feedback">意见反馈</string>
+    <string name="settings_feedback_hint">哪里不好用、哪里记错了，写一句发给我</string>
+    <string name="settings_feedback_input_hint">比如：一句话里两笔账只记了第一笔…</string>
+    <string name="settings_feedback_privacy">会自动附上版本与机型，不会带你的账目内容。</string>
+    <string name="settings_feedback_send">发送</string>
+    <string name="settings_feedback_empty">先写点什么吧</string>
+    <string name="settings_feedback_subject">慧记反馈</string>
+    <string name="settings_feedback_chooser">选择发送方式</string>
+    <string name="settings_feedback_no_app">没找到可用的邮件或分享应用，内容已复制到剪贴板</string>
+    <!-- %1$s 版本名，%2$d 版本号，%3$s 机型，%4$s Android 版本，%5$d API 级别 -->
+    <string name="settings_feedback_diagnostics">----------\n慧记 %1$s (%2$d)\n%3$s · Android %4$s (API %5$d)</string>
+
+    <!-- 设置页改成列表入口式之后：行上只放短名，长解释留在对话框里 -->
+    <string name="settings_mode_strict_short">每笔确认</string>
+    <string name="settings_mode_large_short">大额确认</string>
+    <string name="settings_mode_doubtful_short">存疑才确认</string>
+    <string name="settings_scheme_simple_short">简单分类</string>
+    <string name="settings_scheme_standard_short">标准分类</string>
+    <string name="settings_provider_siliconflow">硅基流动</string>
+    <string name="settings_provider_deepseek">DeepSeek 官方</string>
+    <string name="settings_value_default">默认</string>
+    <string name="settings_value_configured">已配置</string>
+    <string name="settings_value_yuan">%1$s 元</string>
+    <string name="settings_threshold_invalid">大额阈值请填 0 到 %1$d 之间的整数（元）</string>
+
     <!-- 待处理草稿列表 -->
     <string name="pending_title">待处理草稿</string>
     <string name="pending_empty">没有待处理的草稿</string>
+    <string name="pending_clear">清空</string>
+    <string name="pending_clear_confirm">确定丢弃全部 %1$d 笔待处理草稿？原始输入会保留。</string>
     <string name="pending_hint">这些草稿都还没记账。点进去核对一下就能落账。</string>
 
     <!-- 确认页 -->
@@ -76,6 +148,11 @@
     <string name="ledger_empty">这个月还没有账目</string>
     <string name="ledger_hint">点一条账目可以改正分类或撤销。撤销只删账目，原始输入会保留。</string>
     <string name="ledger_auto_badge">自动记</string>
+    <string name="ledger_filter_all">全部</string>
+    <string name="ledger_total">总计</string>
+    <string name="ledger_range_total">全部账目</string>
+    <string name="ledger_expense">支出</string>
+    <string name="ledger_income">收入</string>
     <string name="ledger_action_correct">改正分类</string>
     <string name="ledger_action_void">撤销这笔</string>
     <string name="ledger_void_done">已撤销这笔账目</string>
@@ -84,11 +161,13 @@
     <!-- 报表 -->
     <string name="report_title">报表</string>
     <string name="report_expense">本月支出</string>
+    <string name="report_total_expense">本月合计支出</string>
     <string name="report_income">本月收入</string>
     <string name="report_estimate_note">含 %1$d 笔估算，浮动约 %2$s</string>
     <string name="report_expense_by_root">支出去向（按一级分类）</string>
     <string name="report_income_by_root">收入来源（按一级分类）</string>
     <string name="report_exclude_transfer">排除转账</string>
+    <string name="report_exclude_transfer_note">转账默认计入支出，开启后从上面的合计里减掉</string>
     <string name="report_transfer_included">含 %1$d 笔转账，合计 %2$s，已计入上面的支出</string>
     <string name="report_transfer_note">已排除 %1$d 笔转账，合计 %2$s</string>
     <string name="report_empty">这个月还没有账目</string>
@@ -97,10 +176,18 @@
     <!-- 分类选择器 -->
     <string name="pick_category_title">选分类</string>
     <string name="action_cancel">取消</string>
+    <string name="action_confirm">确定</string>
+    <string name="month_picker_title">选择月份</string>
+    <string name="month_prev">上一个月</string>
+    <string name="month_next">下一个月</string>
+    <string name="action_back">返回</string>
 
     <!-- 账目详情 -->
     <string name="detail_title">账目详情</string>
     <string name="detail_section_input">输入解析</string>
+    <string name="detail_more">更多操作</string>
+    <string name="detail_action_delete">删除这笔账目</string>
+    <string name="detail_action_delete_short">删除这笔</string>
     <string name="detail_expand">展开解析详情</string>
     <string name="detail_collapse">收起解析详情</string>
     <string name="detail_section_amount">金额</string>
@@ -111,4 +198,86 @@
     <string name="detail_raw_image">原始截图</string>
     <string name="detail_raw_audio">原始录音</string>
     <string name="detail_raw_file">原始文件</string>
+
+    <!-- 已入账账目的金额改正（2026-10-08） -->
+    <string name="detail_amount_editable">点金额可修改</string>
+    <string name="detail_edit_amount">修改金额</string>
+    <string name="detail_amount_invalid">请输入大于 0 的金额</string>
+
+    <!-- ============ 首页工作台（2026-10-07 界面重排） ============ -->
+    <!-- 概览条：全屏唯一一块深色，承担「本月花了多少」这个最重的信息 -->
+    <string name="home_hero_expense">本月支出</string>
+    <string name="home_hero_income">收入</string>
+    <string name="home_hero_balance">结余</string>
+    <!-- 没有任何账目时的占位，避免出现一个空的「¥0.00」 -->
+    <string name="home_hero_empty">—</string>
+
+    <!--
+      最近账目：卡片内可滚，滚到底会再加载一页（跨月，见 RecentEntriesViewModel）。
+      底栏两个数字只说这张卡片里的事——「已显示 N 笔」+「支出 X 元」；
+      右上角那个链接去的是账本页（默认本月视图），所以它写「本月 N 笔」。
+      三者口径必须各自写清：卡片跨月、概览与链接都是本月。
+    -->
+    <string name="home_recent_title">最近账目</string>
+    <string name="home_recent_all">本月 %1$d 笔 →</string>
+    <string name="home_recent_count">已显示 %1$d 笔</string>
+    <string name="home_recent_empty">还没有账目，说一句话试试</string>
+
+    <!-- 三个图标入口下方的注脚 -->
+    <string name="home_action_pending">待处理</string>
+    <string name="home_ledger_count">本月 %1$d 笔</string>
+    <string name="home_report_count">分类 %1$d 项</string>
+    <string name="home_pending_count">%1$d 笔</string>
+
+    <!--
+      首页顶栏的当前账本（2026-10-11 多账本）。
+      「记账只记当前账本」，所以"当前是哪个账本"必须一直在眼前——点它进账本选择。
+    -->
+    <string name="home_ledger_badge">当前账本：%1$s</string>
+    <string name="home_ledger_pick">切换账本</string>
+
+    <!-- ============ 账本选择（游戏存档式，2026-10-11） ============ -->
+    <string name="ledger_picker_title">选择账本</string>
+    <string name="ledger_picker_hint">每个账本的账目与分类各自独立。点一下即切换，记账立刻记进新的账本。</string>
+    <string name="ledger_picker_new">新建账本</string>
+    <string name="ledger_picker_new_title">新建账本</string>
+    <string name="ledger_picker_name_hint">给它起个名字，比如「旅行」「2026 上半年」</string>
+    <string name="ledger_picker_name_empty">名字不能为空</string>
+    <string name="ledger_picker_rename_title">重命名账本</string>
+    <string name="ledger_picker_current_badge">当前使用</string>
+    <string name="ledger_picker_entries">%1$d 笔账目</string>
+    <string name="ledger_picker_created">创建于 %1$s</string>
+    <!-- 卡片第二行：创建时间 · 分类方案。两样都是"这个账本是什么样" -->
+    <string name="ledger_card_meta">创建于 %1$s · %2$s</string>
+    <string name="ledger_picker_action_preview">预览分类</string>
+    <string name="ledger_picker_action_rename">重命名</string>
+    <string name="ledger_picker_action_delete">删除</string>
+    <string name="ledger_picker_switched">已切换到「%1$s」</string>
+    <string name="ledger_picker_created_toast">已新建账本「%1$s」</string>
+    <string name="ledger_picker_deleted">已删除账本「%1$s」</string>
+    <string name="ledger_picker_empty">还没有账本</string>
+    <!-- 删除非空账本：连数据一起永久删除，所以要用户把四个字打出来才放行 -->
+    <string name="ledger_picker_delete_title">删除账本</string>
+    <string name="ledger_picker_delete_message">删除「%1$s」会连同它的全部账目、分类与截图一起永久删除，无法恢复。\n\n请输入「确认删除」四个字以继续。</string>
+    <string name="ledger_picker_delete_word">确认删除</string>
+    <string name="ledger_picker_delete_word_hint">在这里输入：确认删除</string>
+    <string name="ledger_picker_delete_word_wrong">输入不正确，请照着「确认删除」四个字原样输入</string>
+    <string name="ledger_picker_delete_only_one">至少要留一个账本，不能全删光</string>
+
+    <!--
+      分类预览（2026-10-11）：账本卡片上不再铺分类清单，改成一个弹框。
+      预览的深浅跟着这个账本的分类方案走 —— 简单就只列一级，标准才展开二级。
+    -->
+    <string name="ledger_preview_title">分类预览</string>
+    <string name="ledger_preview_simple_note">这个账本用的是「简单」：只能选一级分类，所以这里只列一级。</string>
+    <string name="ledger_preview_standard_note">这个账本用的是「标准」：可以用到二级分类。</string>
+
+    <!-- 新建账本弹框（2026-10-11）：名字 + 分类方案 + 预览 -->
+    <string name="ledger_new_scheme_label">分类方案</string>
+    <!-- 说实话：定了就改不了。留一句含糊的"以后能改"会让用户建完才发现没入口 -->
+    <string name="ledger_new_scheme_note">建好之后就定了，之后不能改</string>
+    <string name="ledger_new_preview">预览这套分类</string>
+
+    <!-- 解析结果的限时提示（Snackbar）上的动作按钮 -->
+    <string name="home_result_open">详情</string>
 </resources>

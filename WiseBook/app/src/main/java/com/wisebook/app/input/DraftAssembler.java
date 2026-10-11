@@ -1,5 +1,6 @@
 package com.wisebook.app.input;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.wisebook.app.data.local.entity.DraftEntity;
@@ -132,12 +133,14 @@ public final class DraftAssembler {
 
         // 注意这里<b>不会</b>再产生 CATEGORY_SWING：分类判定已不再输出"不确定"信号
         // （HANDOFF 决策 30）。分类要么被确定性规则定死，要么采用模型的，要么兜到「其他」
+        //
+        // 2026-10-08 起也不再产生 SPLIT_UNCERTAIN（决策 50）：那个标签原先来自模型自报的
+        // transactionCount（"这句话有几笔"），而现在拆分由模型直接给数组完成、字段已删。
+        // 枚举值保留只为读历史数据（与 CATEGORY_SWING 同一个处理）。
+        // 「拆出多笔要不要一律确认」另有开关：ConfirmPolicy 的条件 8，等用户拍板后再接线。
         List<ConfidenceFlag> flags = new ArrayList<>();
         if (amount.ambiguous()) {
             flags.add(ConfidenceFlag.AMOUNT_AMBIGUOUS);
-        }
-        if (readTransactionCount(payload) > 1) {
-            flags.add(ConfidenceFlag.SPLIT_UNCERTAIN);
         }
         draft.confidenceFlags = flags;
 
@@ -168,15 +171,57 @@ public final class DraftAssembler {
         candidates.add(new CategoryCandidate(id, resolved == null ? path : resolved));
     }
 
-    // ------------------------------------------------------------- payload 读取
-
-    private static int readTransactionCount(JsonObject payload) {
-        Long value = readLong(payload, DraftToolSchema.FIELD_TRANSACTION_COUNT);
-        if (value == null || value < 1L || value > DraftToolSchema.MAX_TRANSACTION_COUNT) {
-            return 1;
+    /**
+     * 把批量工具返回的 {@code drafts} 数组装配成一串草稿（决策 50 前只服务截图入口，
+     * 现在两个入口共用这一段）。
+     *
+     * <p>放在这里而不是各解析器里各写一遍：这段循环就是 {@link #assemble} 加上
+     * "批次标签 + 顺序号"两件事，两个入口的差别只有 {@code source} / {@code evidenceType} /
+     * {@code rawInput} 三个入参。<b>「同一条逻辑被两处复用、只做对了一处」这个项目已经踩过两次
+     * （HANDOFF §8-23、§8-35）</b>，能共用就别复制。
+     *
+     * <p>不是对象的元素直接跳过（schema 校验本就该挡住，这里只是不让一个坏元素毁掉整批）。
+     *
+     * @param elements      {@code drafts} 数组
+     * @param rawInput      原话（文字入口）或转写文本（截图入口），整批共用
+     * @param batchId       批次标签，由 {@link #batchId} 生成；同一次输入的几笔共享它
+     */
+    public List<DraftEntity> assembleBatch(JsonArray elements, String rawInput, DraftSource source,
+                                           EvidenceType evidenceType, String batchId,
+                                           LocalDateTime now) {
+        List<DraftEntity> drafts = new ArrayList<>();
+        if (elements == null) {
+            return drafts;
         }
-        return value.intValue();
+        int index = 0;
+        for (JsonElement element : elements) {
+            if (!element.isJsonObject()) {
+                continue;
+            }
+            DraftEntity draft = assemble(element.getAsJsonObject(), rawInput, source,
+                    evidenceType, now);
+            // 一次输入里的多笔共享同一个批次标签（D1 §4.2：只是标签，不共享状态），
+            // splitIndex 记录它在原话/原图里的顺序——确认页按它排序才与用户看到的一致
+            draft.batchId = batchId;
+            draft.splitIndex = index;
+            drafts.add(draft);
+            index++;
+        }
+        return drafts;
     }
+
+    /**
+     * 批次标签：前缀 + 「现在」派生的毫秒。
+     *
+     * <p>用「现在」派生而不是 UUID：同一毫秒里解析两次输入在实际使用中不会发生，
+     * 而<b>可复现</b>的标签让单测能直接断言它（UUID 只能断言"非空"）。
+     * 前缀用入口区分（{@code TXT-} / {@code IMG-}），排查时一眼看得出这批草稿从哪来。
+     */
+    public String batchId(String prefix, LocalDateTime now) {
+        return prefix + now.atZone(zone).toInstant().toEpochMilli();
+    }
+
+    // ------------------------------------------------------------- payload 读取
 
     private static String readString(JsonObject payload, String field) {
         JsonElement element = payload.get(field);

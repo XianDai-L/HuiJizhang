@@ -51,8 +51,7 @@ public class DraftToolSchemaTest {
                 DraftToolSchema.FIELD_PAYMENT_METHOD,
                 DraftToolSchema.FIELD_MERCHANT,
                 DraftToolSchema.FIELD_ITEMS,
-                DraftToolSchema.FIELD_NOTE,
-                DraftToolSchema.FIELD_TRANSACTION_COUNT}) {
+                DraftToolSchema.FIELD_NOTE}) {
             assertTrue("schema 缺少字段 " + field, properties.has(field));
         }
     }
@@ -70,14 +69,20 @@ public class DraftToolSchemaTest {
     }
 
     @Test
-    public void categoryEnumIsStandardSchemeLastLevel() {
+    public void categoryEnumIsStandardSchemeLastLevelPlusTopLevelsWithChildren() {
         List<String> paths = DraftToolSchema
                 .categoryPaths(TestFixtures.tree(), CategoryScheme.STANDARD);
 
         assertTrue("有二级的一级要列到二级", paths.contains("餐饮>咖啡"));
         assertTrue("没有二级的一级本身就是末级", paths.contains("其他"));
         assertTrue("收入一级也要列进去", paths.contains("工资"));
-        assertFalse("一级分类自己不作为可选值", paths.contains("餐饮"));
+        // 2026-10-08 改（HANDOFF §8-31）：有二级的一级<b>也</b>要进枚举。
+        // prompt 一直让模型「转账选『人情』或其下的二级」，而枚举原先只列末级——
+        // 提示词让模型给一个协议层禁止的取值，于是每笔转账都白重试一次（首次通过率掉到 4/6）。
+        // 而"落在一级"本来就是这个系统的正常形态：转账兜底写的就是一级「人情」（决策 32）。
+        assertTrue("有二级的一级也要进枚举（转账的默认落点就是一级「人情」）",
+                paths.contains("人情"));
+        assertTrue("同上，支出侧的一级也一样", paths.contains("餐饮"));
     }
 
     @Test
@@ -116,7 +121,7 @@ public class DraftToolSchemaTest {
         assertEquals("string", categoryPath.get("type").getAsString());
     }
 
-    // ------------------------------------------------------------ 一图多笔（P2）
+    // ------------------------------------------------------------ 多笔（P2 截图 / 决策 50 文字）
 
     @Test
     public void batchSchemaWrapsTheSingleDraftSchema() {

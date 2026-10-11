@@ -1,32 +1,47 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  详情页的一格：标签在上、内容在下。
+  详情页字段区的一行：左标签、右值。
 
-  与 item_detail_row 的区别是它是给「一行两列」用的——半屏宽的格子里，
-  「左标签右内容」会把内容挤成一条细缝（长值只能不停换行），标签移到上面反而更省高度。
+  2026-10-07 从「标签在上、值在下」改回左右排列：详情页现在是整屏宽的一张表，
+  不再是一行并两列的窄格，值有多长都放得下，左右排反而更省高度、也更好扫。
+  row_chevron 只在这一行可以点开时才显示（目前只有「分类」用它）。
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="vertical"
-    android:paddingTop="6dp"
-    android:paddingBottom="6dp">
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingTop="13dp"
+    android:paddingBottom="13dp">
 
     <TextView
         android:id="@+id/row_label"
-        android:layout_width="wrap_content"
+        android:layout_width="88dp"
         android:layout_height="wrap_content"
-        android:textColor="@color/muted"
-        android:textSize="12sp"
-        tools:text="规则校验" />
+        android:textColor="@color/ink_2"
+        android:textSize="@dimen/text_body_small"
+        tools:text="商户" />
 
     <TextView
         android:id="@+id/row_value"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="1dp"
-        android:textSize="14sp"
-        tools:text="通过（规则重算与模型一致）" />
+        android:layout_weight="1"
+        android:gravity="end"
+        android:textColor="@color/ink"
+        android:textSize="@dimen/text_body"
+        tools:text="楼下小馆" />
+
+    <ImageView
+        android:id="@+id/row_chevron"
+        android:layout_width="18dp"
+        android:layout_height="18dp"
+        android:layout_marginStart="@dimen/space_1"
+        android:contentDescription="@null"
+        android:src="@drawable/ic_chevron_right"
+        android:tint="@color/ink_3"
+        android:visibility="gone"
+        tools:visibility="visible" />
 
 </LinearLayout>

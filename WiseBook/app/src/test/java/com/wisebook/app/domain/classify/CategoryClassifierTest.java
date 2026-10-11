@@ -7,6 +7,7 @@ import com.wisebook.app.TestFixtures;
 import com.wisebook.app.data.local.entity.DraftEntity;
 import com.wisebook.app.domain.model.CategoryCandidate;
 import com.wisebook.app.domain.model.Direction;
+import com.wisebook.app.domain.model.DraftSource;
 
 import org.junit.Test;
 
@@ -154,5 +155,100 @@ public class CategoryClassifierTest {
                 new CategoryCandidate(TestFixtures.CAT_MISC, "其他"));
 
         assertEquals(Long.valueOf(TestFixtures.CAT_MISC), classifier.classify(draft).categoryId);
+    }
+
+    // ------------------------------------------- 账单导入的规则表（2026-10-08 新增）
+
+    private static DraftEntity billDraft(String merchant, List<String> items) {
+        DraftEntity draft = draft(merchant, 3300L, List.of());
+        draft.source = DraftSource.BILL_IMPORT;
+        draft.items = items;
+        return draft;
+    }
+
+    @Test
+    public void billImportUsesTheMerchantRuleTable() {
+        // 账单里的「交易对方」是支付平台给的结构化字段，可信——所以这个入口才敢用规则表
+        CategoryClassifier.Result result =
+                classifier.classify(billDraft("星巴克", null));
+
+        assertEquals(Long.valueOf(TestFixtures.CAT_COFFEE), result.categoryId);
+        assertTrue(result.reason.contains("商户名"));
+    }
+
+    /**
+     * <b>护栏</b>：同一句「星巴克」，走截图入口时不许命中规则表。
+     *
+     * <p>这是决策 46 的原样保留——截图里出现的商户名不一定与这笔账有关
+     * （OCR 会读到页面上别处的文字）。按入口隔离，而不是把表塞回所有入口共用。
+     */
+    @Test
+    public void screenshotDraftWithTheSameMerchantStillFallsBack() {
+        DraftEntity draft = draft("星巴克", 3300L, List.of());
+        draft.source = DraftSource.IMAGE;
+
+        assertEquals("截图入口照旧落「其他」，规则表对它不存在",
+                Long.valueOf(TestFixtures.CAT_MISC), classifier.classify(draft).categoryId);
+    }
+
+    @Test
+    public void textChatDraftIsAlsoUnaffectedByTheBillRules() {
+        DraftEntity draft = draft("星巴克", 3300L, List.of());
+        draft.source = DraftSource.TEXT_CHAT;
+
+        assertEquals(Long.valueOf(TestFixtures.CAT_MISC), classifier.classify(draft).categoryId);
+    }
+
+    @Test
+    public void billImportItemTextCanDecideWhenTheMerchantSaysNothing() {
+        // 「某出行」推不出什么，商品名「滴滴快车打车」能——但测试用例里的分类树没有
+        // 「交通」这一支，所以这里验的是"路径在本机不存在时安全退回兜底"，不抛异常
+        CategoryClassifier.Result result = classifier.classify(
+                billDraft("某出行", List.of("滴滴快车打车-容师傅-10月01日行程")));
+
+        assertEquals(Long.valueOf(TestFixtures.CAT_MISC), result.categoryId);
+        assertTrue(result.reason.contains("其他"));
+    }
+
+    @Test
+    public void billImportMerchantWithoutRuleFallsBackToOther() {
+        CategoryClassifier.Result result = classifier.classify(billDraft("某某小店", null));
+
+        assertEquals(Long.valueOf(TestFixtures.CAT_MISC), result.categoryId);
+    }
+
+    /**
+     * 账单入口的<b>候选排在规则表之后</b>。
+     *
+     * <p>顺序是被实测逼出来的：导入时会把判定结果写回 {@code category_candidates}
+     * （详情页靠它显示分类名），若候选排在前面，重跑时就会把上一次自己的结论
+     * 当成"已明确的候选"，依据随之变成另一句话——同一笔账，导入时与回看时两种说法。
+     */
+    @Test
+    public void billRulesAreEvaluatedBeforeAStaleCandidate() {
+        DraftEntity draft = billDraft("星巴克", null);
+        draft.categoryCandidates = List.of(
+                new CategoryCandidate(TestFixtures.CAT_TAKEOUT, "餐饮>外卖"));
+
+        CategoryClassifier.Result result = classifier.classify(draft);
+
+        assertEquals("每次重跑都从账单字段重新推，结论才稳定",
+                Long.valueOf(TestFixtures.CAT_COFFEE), result.categoryId);
+        assertTrue(result.reason.contains("商户名"));
+    }
+
+    /** 规则没命中时，账单里直接给出的分类（收入转账的「红包」）照样被采用 */
+    @Test
+    public void billCandidateIsAdoptedWhenNoRuleHits() {
+        DraftEntity draft = billDraft("某某同学", null);
+        draft.direction = Direction.INCOME;
+        draft.categoryCandidates = List.of(
+                new CategoryCandidate(TestFixtures.CAT_RED_PACKET_IN, "红包"));
+
+        CategoryClassifier.Result result = classifier.classify(draft);
+
+        assertEquals(Long.valueOf(TestFixtures.CAT_RED_PACKET_IN), result.categoryId);
+        assertTrue("账单入口不该说「采用模型给出的分类」——那里没有模型",
+                result.reason.contains("账单里直接给出"));
     }
 }

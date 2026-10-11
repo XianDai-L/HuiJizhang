@@ -1,6 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  账本行。
+  账本行，首页的「最近账目」与账本页共用。
+
+  2026-10-07 重排后分成四段：分类色块 → 商户/副行 → 金额 → 「自动记」标记。
+  主行给的是<b>商户</b>而不是「支出 28.50 元 · 交通&gt;打车」：
+  金额已经单列在右边，再在标题里重复一遍，扫列表时反而要多读几个字。
+  分类路径挪到副行，和「时间 · 支付方式」并列。
+
   背景色由适配器按「是否免确认直落」设置（浅色底），所以这里把点击水波纹放到
   foreground 上——background 被占用之后，它就是唯一能保留按下反馈的位置。
 -->
@@ -11,47 +17,89 @@
     android:layout_height="wrap_content"
     android:background="@android:color/transparent"
     android:foreground="?android:attr/selectableItemBackground"
-    android:orientation="vertical"
-    android:padding="14dp">
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingStart="@dimen/space_4"
+    android:paddingTop="16dp"
+    android:paddingEnd="@dimen/space_4"
+    android:paddingBottom="16dp">
+
+    <!-- 分类色块：颜色按一级分类决定，同一个分类永远是同一个颜色，跨页可认。
+         块里放两个字（「餐饮」而不是「餐」）——一个字看不出是哪一类 -->
+    <TextView
+        android:id="@+id/item_cat"
+        android:layout_width="@dimen/cat_tile"
+        android:layout_height="@dimen/cat_tile"
+        android:background="@drawable/bg_tile"
+        android:gravity="center"
+        android:textColor="@color/ink_2"
+        android:textSize="@dimen/text_micro"
+        android:textStyle="bold"
+        tools:backgroundTint="@color/cat_food_bg"
+        tools:text="餐饮"
+        tools:textColor="@color/cat_food" />
 
     <LinearLayout
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:gravity="center_vertical"
-        android:orientation="horizontal">
+        android:layout_marginStart="13dp"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/item_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textColor="@color/ink"
+                android:textSize="@dimen/text_body"
+                android:textStyle="bold"
+                tools:text="星巴克" />
+
+            <!-- 「自动记」标记：免确认直落的账目才显示，让用户能快速扫检 -->
+            <TextView
+                android:id="@+id/item_badge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:background="@drawable/badge_background"
+                android:paddingStart="5dp"
+                android:paddingTop="2dp"
+                android:paddingEnd="5dp"
+                android:paddingBottom="2dp"
+                android:text="@string/ledger_auto_badge"
+                android:textColor="@color/brand_ink"
+                android:textSize="@dimen/text_tiny"
+                android:textStyle="bold"
+                android:visibility="gone"
+                tools:visibility="visible" />
+        </LinearLayout>
 
         <TextView
-            android:id="@+id/item_title"
-            android:layout_width="0dp"
+            android:id="@+id/item_sub"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            tools:text="支出 28.50 元 · 交通&gt;打车" />
-
-        <TextView
-            android:id="@+id/item_badge"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:background="@drawable/badge_background"
-            android:paddingStart="8dp"
-            android:paddingTop="2dp"
-            android:paddingEnd="8dp"
-            android:paddingBottom="2dp"
-            android:text="@string/ledger_auto_badge"
-            android:textColor="@color/white"
-            android:textSize="11sp"
-            android:visibility="gone"
-            tools:visibility="visible" />
+            android:layout_marginTop="3dp"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textColor="@color/ink_3"
+            android:textSize="@dimen/text_micro"
+            tools:text="10-07 08:42 · 餐饮 › 咖啡 · 微信" />
     </LinearLayout>
 
     <TextView
-        android:id="@+id/item_sub"
-        android:layout_width="match_parent"
+        android:id="@+id/item_amount"
+        style="@style/Text.Amount"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:textColor="@color/muted"
-        android:textSize="13sp"
-        tools:text="09-24 20:30 · 滴滴 · 微信" />
+        android:layout_marginStart="@dimen/space_2"
+        tools:text="−32.00" />
 
 </LinearLayout>

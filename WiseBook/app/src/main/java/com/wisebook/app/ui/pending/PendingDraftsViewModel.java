@@ -93,6 +93,31 @@ public class PendingDraftsViewModel extends ViewModel {
         });
     }
 
+    /**
+     * 一键丢弃全部待处理草稿。
+     *
+     * <p>逐个走 {@link DraftRepository#discard}，而不是新写一条 delete-all：
+     * 「丢弃」在仓储层是有语义的动作（要连带处理关联数据），绕过它直接删表会留下不一致。
+     * 草稿数量本来就是个位到十位数，逐条没有性能问题。
+     *
+     * <p>列表由调用方传进来，ViewModel 不再查一次库：列表是 Room 驱动的，
+     * 手上这份就是最新的，多查一次反而可能读到刚被丢弃的那条。
+     */
+    public void clearAll(List<DraftEntity> drafts) {
+        if (drafts == null || drafts.isEmpty()) {
+            return;
+        }
+        final List<Long> ids = new ArrayList<>();
+        for (DraftEntity draft : drafts) {
+            ids.add(draft.draftId);
+        }
+        executor.execute(() -> {
+            for (Long id : ids) {
+                draftRepository.discard(id);
+            }
+        });
+    }
+
     /** 手动构造依赖的 ViewModel 工厂（P1 不用依赖注入框架，D2 §1） */
     public static final class Factory implements ViewModelProvider.Factory {
 

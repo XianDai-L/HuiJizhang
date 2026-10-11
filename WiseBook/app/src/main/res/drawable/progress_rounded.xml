@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  圆角进度条，给报表的分类占比用。
+  系统默认的 progressBarStyleHorizontal 是直角矩形，和整页 20dp 圆角的调子对不上。
+
+  clip 只在右端裁切，所以左端始终是圆的；进度到 100% 时两端都圆。
+  实际颜色由代码用 setProgressTintList / setProgressBackgroundTintList 决定
+  （跟着分类色走），这里的颜色只是占位。
+-->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@android:id/background">
+        <shape android:shape="rectangle">
+            <corners android:radius="4dp" />
+            <solid android:color="@color/surface_sunken" />
+        </shape>
+    </item>
+    <item android:id="@android:id/progress">
+        <clip>
+            <shape android:shape="rectangle">
+                <corners android:radius="4dp" />
+                <solid android:color="@color/brand" />
+            </shape>
+        </clip>
+    </item>
+</layer-list>

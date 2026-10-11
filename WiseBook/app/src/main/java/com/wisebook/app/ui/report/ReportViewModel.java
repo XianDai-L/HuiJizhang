@@ -12,6 +12,7 @@ import com.wisebook.app.domain.classify.CategoryTree;
 import com.wisebook.app.domain.report.MonthRange;
 import com.wisebook.app.domain.report.MonthlyReport;
 
+import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.concurrent.ExecutorService;
 
@@ -30,13 +31,18 @@ public class ReportViewModel extends ViewModel {
     private final CategoryRepository categoryRepository;
     private final ExecutorService executor;
     private final long userId;
-    private final MonthRange range;
+    private final ZoneId zone;
+    /** 当前看的月份。切月会改它，所以不是 final */
+    private MonthRange monthRange;
 
     private final MutableLiveData<MonthlyReport> report = new MutableLiveData<>();
     private final MutableLiveData<CategoryTree> tree = new MutableLiveData<>();
 
     /** 默认<b>不</b>排除转账：D1 §8 决策 7 的口径是「转账参与统计、可一键排除」 */
     private boolean includeTransfer = true;
+
+    /** 是否看「全部账目」。与账本页那个总计开关是同一件事，两页的表现要对得上 */
+    private boolean total;
 
     public ReportViewModel(ReportRepository reportRepository,
                            CategoryRepository categoryRepository,
@@ -45,11 +51,45 @@ public class ReportViewModel extends ViewModel {
         this.categoryRepository = categoryRepository;
         this.executor = executor;
         this.userId = userId;
-        this.range = MonthRange.current(zone);
+        this.zone = zone;
+        this.monthRange = MonthRange.current(zone);
     }
 
     public MonthRange range() {
-        return range;
+        return monthRange;
+    }
+
+    public boolean isTotal() {
+        return total;
+    }
+
+    /** 当前生效的范围：本月，或者全部账目 */
+    private MonthRange effectiveRange() {
+        return total ? MonthRange.all() : monthRange;
+    }
+
+    /** 在「本月」和「总计」之间切，并立刻重算 */
+    public void toggleTotal() {
+        total = !total;
+        load();
+    }
+
+    /**
+     * 往前 / 往后翻一个月。
+     *
+     * <p>翻月自动退出「总计」：总计没有"上一个月"可言，用户点箭头说明他想按月看，
+     * 这时候还停在总计上会让人以为按钮坏了。
+     */
+    public void shiftMonth(int delta) {
+        LocalDate anchor = LocalDate.of(monthRange.year, monthRange.month, 1).plusMonths(delta);
+        selectMonth(anchor.getYear(), anchor.getMonthValue());
+    }
+
+    /** 直接跳到指定的年月（顶栏点中间那串年月之后选的结果） */
+    public void selectMonth(int year, int month) {
+        monthRange = MonthRange.of(year, month, zone);
+        total = false;
+        load();
     }
 
     public boolean isIncludeTransfer() {
@@ -68,7 +108,7 @@ public class ReportViewModel extends ViewModel {
     public void load() {
         executor.execute(() -> {
             tree.postValue(categoryRepository.loadTree(userId));
-            report.postValue(reportRepository.build(range, includeTransfer));
+            report.postValue(reportRepository.build(effectiveRange(), includeTransfer));
         });
     }
 

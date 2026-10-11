@@ -19,6 +19,7 @@ import com.wisebook.app.domain.classify.CategoryTree;
 import com.wisebook.app.domain.model.AmountRuleCheck;
 import com.wisebook.app.domain.model.CategoryScheme;
 import com.wisebook.app.domain.model.Direction;
+import com.wisebook.app.domain.model.DraftSource;
 import com.wisebook.app.domain.model.EvidenceType;
 import com.wisebook.app.ui.DiagnosticsFormatter;
 import com.wisebook.app.ui.DraftFormatter;
@@ -57,6 +58,14 @@ public class EntryDetailViewModel extends ViewModel {
 
         /** 金额大字，约数带 {@code ≈} */
         public final String amount;
+
+        /**
+         * 金额本身，单位「分」。
+         *
+         * <p>给「改金额」的输入框预填用：不要去反解上面那个字符串——它可能带
+         * {@code ≈}、带千分位、带「元」，从展示文本反推数值那种解析迟早出错。
+         */
+        public final long amountCents;
         /** 如 {@code 支出 · 娱乐>游戏} */
         public final String directionCategory;
         /** 「输入解析」收起时可见的那一行 */
@@ -76,10 +85,23 @@ public class EntryDetailViewModel extends ViewModel {
         public final List<Row> fieldRows;
         public final List<Row> postingRows;
 
-        Detail(String amount, String directionCategory, String rawLabel, String rawText,
-               String parseDetails, String evidencePath, List<Row> amountRows,
-               List<Row> timeRows, List<Row> fieldRows, List<Row> postingRows) {
+        /**
+         * 详情页正面那张表要摆的几行（分类 / 商户 / 发生时间 / 支付方式 / 来源 / 备注 /
+         * 商品明细 / 入账时间 / 记账方式）。
+         *
+         * <p>上面那四组<b>一并保留</b>：它们是"这笔账的全部可解释信息"（金额怎么校验的、
+         * 时间是怎么来的、模型看到的是什么），排查与答辩都要用。
+         * 而正面这张表是给日常查看的——用户翻到这一页，十次有九次只想确认
+         * "商户对不对、分类对不对"，不必先读一遍校验过程。
+         */
+        public final List<Row> summaryRows;
+
+        Detail(String amount, long amountCents, String directionCategory, String rawLabel,
+               String rawText, String parseDetails, String evidencePath, List<Row> amountRows,
+               List<Row> timeRows, List<Row> fieldRows, List<Row> postingRows,
+               List<Row> summaryRows) {
             this.amount = amount;
+            this.amountCents = amountCents;
             this.directionCategory = directionCategory;
             this.rawLabel = rawLabel;
             this.rawText = rawText;
@@ -89,6 +111,7 @@ public class EntryDetailViewModel extends ViewModel {
             this.timeRows = timeRows;
             this.fieldRows = fieldRows;
             this.postingRows = postingRows;
+            this.summaryRows = summaryRows;
         }
     }
 
@@ -188,6 +211,29 @@ public class EntryDetailViewModel extends ViewModel {
         });
     }
 
+    /**
+     * 改正金额（2026-10-08 新增）。
+     *
+     * <p>与改正分类的区别在这里：<b>不需要重新加载分类树</b>，金额不影响分类路径。
+     * 但仍要 {@code load(entryId)}——金额本身、约数区间、以及「估算」标记都会变。
+     *
+     * <p>界面已经做过一次格式校验，这里仍然挡一道 {@code <= 0}：
+     * 仓储层不该假设调用方一定是个界面。
+     */
+    public void correctAmount(long amountCents) {
+        if (entry == null) {
+            return;
+        }
+        long entryId = entry.entryId;
+        executor.execute(() -> {
+            boolean ok = entryRepository.correctAmount(entryId, amountCents);
+            status.postValue(ok ? "金额已改正，账目与草稿同步更新" : "改正失败，请重试");
+            if (ok) {
+                load(entryId);
+            }
+        });
+    }
+
     /** 一键撤销：撤的是账目，草稿与原始输入保留 */
     public void voidEntry() {
         if (entry == null) {
@@ -221,6 +267,7 @@ public class EntryDetailViewModel extends ViewModel {
 
         return new Detail(
                 amount,
+                entry.amountCents,
                 directionCategory,
                 rawLabel(draft),
                 rawText(draft, entry),
@@ -229,7 +276,46 @@ public class EntryDetailViewModel extends ViewModel {
                 amountRows(entry, draft),
                 timeRows(entry),
                 fieldRows(entry),
-                postingRows(entry, draft));
+                postingRows(entry, draft),
+                summaryRows(entry, draft, tree));
+    }
+
+    /**
+     * 正面那张表的行序。
+     *
+     * <p><b>分类排在第一行</b>：这一页最高频的动作是改分类，把它放在最上面，
+     * 用户点开就看到、直接点得动，不必先滚到底部找按钮。
+     */
+    private static List<Row> summaryRows(EntryEntity entry, DraftEntity draft, CategoryTree tree) {
+        List<Row> rows = new ArrayList<>();
+        rows.add(new Row("分类", DraftFormatter.categoryPath(tree, entry.categoryId)));
+        rows.add(new Row("商户", blankToDash(entry.merchant)));
+        rows.add(new Row("发生时间", DraftFormatter.fullDateTime(entry.occurredAt)));
+        rows.add(new Row("支付方式",
+                entry.paymentMethod == null ? "—" : entry.paymentMethod.label()));
+        // 「来源」显示的就是解析方式（文字 / 图片 / 语音）——入口和证据类型本来就是同一件事
+        rows.add(new Row("来源", DraftFormatter.sourceLabel(entry)));
+        rows.add(new Row("备注", blankToDash(entry.note)));
+        rows.add(new Row("商品明细", entry.items == null || entry.items.isEmpty()
+                ? "—" : String.join("、", entry.items)));
+        rows.add(new Row("入账时间", DraftFormatter.fullDateTime(
+                draft == null ? entry.createdAt : draft.postedAt)));
+        rows.add(new Row("记账方式", postingMethod(entry)));
+        return rows;
+    }
+
+    /**
+     * 「这笔是怎么记进来的」。
+     *
+     * <p>{@code autoPosted} 只能表达两种来路（AI 免确认直落 / 用户点过确认），
+     * 而账单导入两种都不是——它压根没过确认流程。原来这两种都会显示"你确认后入账"，
+     * 对一次导入上百笔的账目来说是句假话（2026-10-08 加账单导入时发现）。
+     */
+    private static String postingMethod(EntryEntity entry) {
+        if (entry.source == DraftSource.BILL_IMPORT) {
+            return "从账单导入（未经逐笔确认）";
+        }
+        return entry.autoPosted ? "免确认直落（未经你确认）" : "你确认后入账";
     }
 
     private static String rawLabel(DraftEntity draft) {

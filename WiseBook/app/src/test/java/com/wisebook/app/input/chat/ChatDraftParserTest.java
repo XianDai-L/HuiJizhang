@@ -26,12 +26,17 @@ import org.junit.Test;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.List;
 
 /**
  * 解析管线：一句口语 → 草稿（D1 §2 / §3.6 / §6.4，D2 §7）。
  *
  * <p>参照时间固定成 2026-09-24 20:30（周四），时区固定 Asia/Shanghai，
  * 让「昨天下午」这类解析结果可复现。
+ *
+ * <p><b>2026-10-08 起所有 payload 都是批量形状</b>（{@code {"drafts":[...]}}，决策 50）：
+ * 文字入口也走批量工具，单笔场景就是数组里只有一个元素。下面的用例统一用
+ * {@link #one} / {@link #many} 包壳，免得每处各写一遍这层结构。
  */
 public class ChatDraftParserTest {
 
@@ -57,15 +62,31 @@ public class ChatDraftParserTest {
         return LocalDateTime.ofInstant(Instant.ofEpochMilli(millis), ZONE);
     }
 
+    /** 单笔的批量形状：{@code {"drafts":[ {…} ]}} */
+    private static String one(String draftJson) {
+        return "{\"drafts\":[" + draftJson + "]}";
+    }
+
+    /** 多笔的批量形状；元素顺序就是句中出现顺序 */
+    private static String many(String... draftJsons) {
+        StringBuilder text = new StringBuilder("{\"drafts\":[");
+        for (int i = 0; i < draftJsons.length; i++) {
+            if (i > 0) {
+                text.append(',');
+            }
+            text.append(draftJsons[i]);
+        }
+        return text.append("]}").toString();
+    }
+
     // ------------------------------------------------------------ 主链
 
     @Test
     public void happyPathProducesACompleteDraft() {
-        FakeLlmClient client = new FakeLlmClient().thenReturnPayload(
+        FakeLlmClient client = new FakeLlmClient().thenReturnPayload(one(
                 "{\"direction\":\"expense\",\"amountCents\":2800,\"amountRaw\":\"28\","
                         + "\"occurredAtText\":\"今天\",\"categoryPath\":\"餐饮>外卖\","
-                        + "\"paymentMethod\":\"wechat\",\"merchant\":\"楼下小馆\","
-                        + "\"transactionCount\":1}");
+                        + "\"paymentMethod\":\"wechat\",\"merchant\":\"楼下小馆\"}"));
 
         DraftEntity draft = parse(client, "楼下小馆吃面 28块");
 
@@ -91,13 +112,14 @@ public class ChatDraftParserTest {
         assertEquals("楼下小馆", draft.merchant);
         assertEquals("信息齐全时不该有任何存疑标签", 0, draft.confidenceFlags.size());
         assertEquals(0, draft.splitIndex);
+        assertNotNull("批次标签要留给这笔草稿（即使是单笔）", draft.batchId);
         assertEquals(0, draft.clarifyRounds);
     }
 
     @Test
     public void firstAttemptSucceededIsReported() {
-        FakeLlmClient client = new FakeLlmClient().thenReturnPayload(
-                "{\"direction\":\"expense\",\"merchant\":\"楼下小馆\"}");
+        FakeLlmClient client = new FakeLlmClient().thenReturnPayload(one(
+                "{\"direction\":\"expense\",\"merchant\":\"楼下小馆\"}"));
 
         DraftParseResult result = parser(client).parse("楼下小馆吃面", NOW);
 
@@ -112,9 +134,9 @@ public class ChatDraftParserTest {
     @Test
     public void inconsistentAmountUsesRuleValueAndFlagsFailure() {
         // 模型说 305 元，规则从「三百五」重算得 350 元 —— 必然触发反问（D1 §2.2）
-        FakeLlmClient client = new FakeLlmClient().thenReturnPayload(
+        FakeLlmClient client = new FakeLlmClient().thenReturnPayload(one(
                 "{\"direction\":\"expense\",\"amountCents\":30500,\"amountRaw\":\"三百五\","
-                        + "\"categoryPath\":\"餐饮>外卖\"}");
+                        + "\"categoryPath\":\"餐饮>外卖\"}"));
 
         DraftEntity draft = parse(client, "买菜三百五");
 
@@ -126,9 +148,9 @@ public class ChatDraftParserTest {
 
     @Test
     public void estimatedAmountKeepsItsRange() {
-        FakeLlmClient client = new FakeLlmClient().thenReturnPayload(
+        FakeLlmClient client = new FakeLlmClient().thenReturnPayload(one(
                 "{\"direction\":\"expense\",\"amountCents\":3000,\"amountRaw\":\"三十左右\","
-                        + "\"categoryPath\":\"餐饮>外卖\"}");
+                        + "\"categoryPath\":\"餐饮>外卖\"}"));
 
         DraftEntity draft = parse(client, "买菜三十左右");
 
@@ -142,9 +164,9 @@ public class ChatDraftParserTest {
 
     @Test
     public void unparseableAmountRawFallsBackToModelValue() {
-        FakeLlmClient client = new FakeLlmClient().thenReturnPayload(
+        FakeLlmClient client = new FakeLlmClient().thenReturnPayload(one(
                 "{\"direction\":\"expense\",\"amountCents\":5000,\"amountRaw\":\"随便给\","
-                        + "\"categoryPath\":\"餐饮>外卖\"}");
+                        + "\"categoryPath\":\"餐饮>外卖\"}"));
 
         DraftEntity draft = parse(client, "随便给点钱");
 
@@ -155,8 +177,9 @@ public class ChatDraftParserTest {
 
     @Test
     public void missingAmountStaysNull() {
-        FakeLlmClient client = new FakeLlmClient().thenReturnPayload(
-                "{\"direction\":\"expense\",\"merchant\":\"楼下小馆\",\"categoryPath\":\"餐饮>外卖\"}");
+        FakeLlmClient client = new FakeLlmClient().thenReturnPayload(one(
+                "{\"direction\":\"expense\",\"merchant\":\"楼下小馆\","
+                        + "\"categoryPath\":\"餐饮>外卖\"}"));
 
         DraftEntity draft = parse(client, "楼下小馆吃了碗面");
 
@@ -168,8 +191,8 @@ public class ChatDraftParserTest {
     @Test
     public void zeroAmountIsTreatedAsMissing() {
         // 金额为 0 的支出没有意义；与其让一个 0 混进统计，不如走"缺字段 → 反问"
-        FakeLlmClient client = new FakeLlmClient().thenReturnPayload(
-                "{\"direction\":\"expense\",\"amountCents\":0,\"amountRaw\":\"0\"}");
+        FakeLlmClient client = new FakeLlmClient().thenReturnPayload(one(
+                "{\"direction\":\"expense\",\"amountCents\":0,\"amountRaw\":\"0\"}"));
 
         assertNull(parse(client, "楼下小馆吃面").amountCents);
     }
@@ -178,8 +201,8 @@ public class ChatDraftParserTest {
 
     @Test
     public void timePhraseIsResolvedByCodeNotTrustedFromModel() {
-        FakeLlmClient client = new FakeLlmClient().thenReturnPayload(
-                "{\"direction\":\"expense\",\"occurredAtText\":\"昨天下午\"}");
+        FakeLlmClient client = new FakeLlmClient().thenReturnPayload(one(
+                "{\"direction\":\"expense\",\"occurredAtText\":\"昨天下午\"}"));
 
         DraftEntity draft = parse(client, "昨天下午打车");
 
@@ -189,8 +212,8 @@ public class ChatDraftParserTest {
 
     @Test
     public void missingTimeFallsBackToNow() {
-        FakeLlmClient client = new FakeLlmClient().thenReturnPayload(
-                "{\"direction\":\"expense\"}");
+        FakeLlmClient client = new FakeLlmClient().thenReturnPayload(one(
+                "{\"direction\":\"expense\"}"));
 
         DraftEntity draft = parse(client, "吃了个饭");
 
@@ -205,9 +228,9 @@ public class ChatDraftParserTest {
         // 商户映射表已删除（HANDOFF 决策 46）：截图里出现的商户名不一定与这笔账有关，
         // 所以商户名不再决定分类。prompt 里"只填具体商户、别填动作"那段仍然有用，
         // 但它现在服务于可解释性（详情页要显示对方是谁），不再用来定分类。
-        FakeLlmClient client = new FakeLlmClient().thenReturnPayload(
+        FakeLlmClient client = new FakeLlmClient().thenReturnPayload(one(
                 "{\"direction\":\"expense\",\"amountCents\":3300,"
-                        + "\"categoryPath\":\"餐饮>外卖\",\"merchant\":\"星巴克\"}");
+                        + "\"categoryPath\":\"餐饮>外卖\",\"merchant\":\"星巴克\"}"));
 
         DraftEntity draft = parse(client, "星巴克买了个东西");
 
@@ -218,9 +241,9 @@ public class ChatDraftParserTest {
 
     @Test
     public void platformMerchantKeepsTheModelCategory() {
-        FakeLlmClient client = new FakeLlmClient().thenReturnPayload(
+        FakeLlmClient client = new FakeLlmClient().thenReturnPayload(one(
                 "{\"direction\":\"expense\",\"amountCents\":5000,"
-                        + "\"categoryPath\":\"购物>日用\",\"merchant\":\"淘宝\"}");
+                        + "\"categoryPath\":\"购物>日用\",\"merchant\":\"淘宝\"}"));
 
         DraftEntity draft = parse(client, "淘宝下单");
 
@@ -232,9 +255,9 @@ public class ChatDraftParserTest {
 
     @Test
     public void modelCategoryIsAdoptedAsIs() {
-        FakeLlmClient client = new FakeLlmClient().thenReturnPayload(
+        FakeLlmClient client = new FakeLlmClient().thenReturnPayload(one(
                 "{\"direction\":\"expense\",\"amountCents\":2000,"
-                        + "\"categoryPath\":\"餐饮>外卖\"}");
+                        + "\"categoryPath\":\"餐饮>外卖\"}"));
 
         DraftEntity draft = parse(client, "楼下小馆吃面");
 
@@ -248,19 +271,42 @@ public class ChatDraftParserTest {
     public void categoryPathConflictingWithDirectionFallsBackToOther() {
         // 一笔支出却选了「工资」（收入分类）——不能硬塞进去，
         // 但也不必反问用户：归入「其他」即可（决策 30）
-        FakeLlmClient client = new FakeLlmClient().thenReturnPayload(
-                "{\"direction\":\"expense\",\"amountCents\":2000,\"categoryPath\":\"工资\"}");
+        FakeLlmClient client = new FakeLlmClient().thenReturnPayload(one(
+                "{\"direction\":\"expense\",\"amountCents\":2000,\"categoryPath\":\"工资\"}"));
 
         DraftEntity draft = parse(client, "楼下小馆吃面");
 
         assertEquals(Long.valueOf(TestFixtures.CAT_MISC), draft.categoryId);
         assertFalse(draft.confidenceFlags.contains(ConfidenceFlag.CATEGORY_SWING));
+    }
+
+    /**
+     * 模型报<b>一级</b>分类时不该被打回重试。
+     *
+     * <p>prompt 让模型「转账选『人情』或其下的二级」，而「人情」是一级——
+     * 2026-10-08 之前枚举只列末级，这句指令等于让模型给一个协议层禁止的取值，
+     * 于是每笔转账都白重试一次（`HANDOFF` §8-31，实验里两条转账样本都中招）。
+     * 现在一级也在枚举里：校验一次通过，落库就是「人情」这个一级，
+     * 与转账兜底的落点（决策 32）是同一个分类。
+     */
+    @Test
+    public void topLevelCategoryIsAcceptedForTransfer() {
+        FakeLlmClient client = new FakeLlmClient().thenReturnPayload(one(
+                "{\"direction\":\"transfer\",\"amountCents\":500,\"amountRaw\":\"5块\","
+                        + "\"categoryPath\":\"人情\"}"));
+
+        DraftEntity draft = parse(client, "转账5块");
+
+        assertEquals(Long.valueOf(TestFixtures.CAT_SOCIAL), draft.categoryId);
+        assertEquals("一级分类所属的一级就是它自己",
+                Long.valueOf(TestFixtures.CAT_SOCIAL), draft.rootCategoryId);
+        assertEquals("枚举允许一级之后，这类句子不该再被打回重试", 1, client.callCount());
     }
 
     @Test
     public void missingCategoryFallsBackToOther() {
-        FakeLlmClient client = new FakeLlmClient().thenReturnPayload(
-                "{\"direction\":\"expense\",\"amountCents\":2000}");
+        FakeLlmClient client = new FakeLlmClient().thenReturnPayload(one(
+                "{\"direction\":\"expense\",\"amountCents\":2000}"));
 
         DraftEntity draft = parse(client, "楼下小馆吃面");
 
@@ -268,28 +314,73 @@ public class ChatDraftParserTest {
         assertFalse(draft.confidenceFlags.contains(ConfidenceFlag.CATEGORY_SWING));
     }
 
-    // ------------------------------------------------------------ 多笔
+    // ------------------------------------------------------------ 多笔（决策 50）
 
+    /**
+     * 一句话里每一笔都是一张独立草稿，共享批次标签、各自有序号。
+     *
+     * <p>P1 时这里断言的是「打上 SPLIT_UNCERTAIN 强制确认」（决策 14：只解析第一笔）。
+     * 决策 50 之后改由批量工具直接拆笔——实验（`docs/对话多笔录入实验.md`）显示
+     * 这样在单笔与多笔样本上都没有付出代价，而"只落第一笔、其余手填"是要用户掏力气的。
+     */
     @Test
-    public void multipleTransactionsFlagForcesConfirmation() {
-        FakeLlmClient client = new FakeLlmClient().thenReturnPayload(
-                "{\"direction\":\"expense\",\"amountCents\":800,\"transactionCount\":3,"
-                        + "\"categoryPath\":\"餐饮>外卖\"}");
+    public void everyElementBecomesItsOwnDraftWithSharedBatchId() {
+        // 分类只能用 TestFixtures 那棵小树里有的路径——枚举是协议层的硬约束，
+        // 写一个树里没有的分类会让整个数组被判非法（这一点由 schema 校验保证，别绕过它）
+        FakeLlmClient client = new FakeLlmClient().thenReturnPayload(many(
+                "{\"direction\":\"expense\",\"amountCents\":800,\"categoryPath\":\"餐饮>外卖\"}",
+                "{\"direction\":\"expense\",\"amountCents\":1700,\"categoryPath\":\"餐饮>咖啡\"}",
+                "{\"direction\":\"transfer\",\"amountCents\":23000}"));
 
-        DraftEntity draft = parse(client, "早饭8块，打车17，中午请客230");
+        DraftParseResult result = parser(client).parse("早饭8块，打车17，中午请客230", NOW);
 
-        assertTrue("一次输入含多笔时必须强制确认（D1 §5.2 条件 8）",
-                draft.confidenceFlags.contains(ConfidenceFlag.SPLIT_UNCERTAIN));
+        assertTrue(result.isOk());
+        assertEquals("一句话里的每一笔都是一张独立草稿", 3, result.draftCount());
+
+        List<DraftEntity> drafts = result.drafts();
+        assertEquals(Long.valueOf(800L), drafts.get(0).amountCents);
+        assertEquals(Long.valueOf(1700L), drafts.get(1).amountCents);
+        assertEquals(Long.valueOf(23000L), drafts.get(2).amountCents);
+
+        assertEquals("同一次输入的几笔共享批次标签",
+                drafts.get(0).batchId, drafts.get(2).batchId);
+        assertTrue("标签要能看出是文字入口来的（截图入口是 IMG-）",
+                drafts.get(0).batchId.startsWith("TXT-"));
+        assertEquals(0, drafts.get(0).splitIndex);
+        assertEquals(1, drafts.get(1).splitIndex);
+        assertEquals("序号按句中出现次序", 2, drafts.get(2).splitIndex);
+
+        assertEquals(DraftSource.TEXT_CHAT, drafts.get(0).source);
+        assertEquals(EvidenceType.TEXT, drafts.get(0).evidenceType);
+        assertEquals("每一笔都留着同一句原话",
+                "早饭8块，打车17，中午请客230", drafts.get(2).rawInput);
     }
 
     @Test
-    public void absurdTransactionCountIsIgnored() {
+    public void singleTransactionIsStillOneElementArray() {
+        // 单笔是绝大多数情况，批量工具的语义是"有几笔给几个元素"——单笔就是数组里一个元素
         FakeLlmClient client = new FakeLlmClient().thenReturnPayload(
-                "{\"direction\":\"expense\",\"amountCents\":800,\"transactionCount\":9999}");
+                one("{\"direction\":\"expense\",\"amountCents\":2800}"));
 
-        DraftEntity draft = parse(client, "吃了个饭");
+        DraftParseResult result = parser(client).parse("楼下小馆吃面 28", NOW);
 
-        assertFalse(draft.confidenceFlags.contains(ConfidenceFlag.SPLIT_UNCERTAIN));
+        assertTrue(result.isOk());
+        assertEquals("单笔不该被拆成多张", 1, result.draftCount());
+        assertEquals(0, result.firstDraft().splitIndex);
+    }
+
+    @Test
+    public void emptyDraftArrayDegrades() {
+        // 空数组是合法的（schema 只约束元素形状），所以重试也救不回来，
+        // 直接按"没读出账目"降级——不必白跑第二次调用
+        FakeLlmClient client = new FakeLlmClient().thenReturnPayload("{\"drafts\":[]}");
+
+        DraftParseResult result = parser(client).parse("吃了个饭", NOW);
+
+        assertEquals(DraftParseResult.Status.DEGRADED, result.status());
+        assertTrue("降级说明要指出是「没读出账目」：" + result.message(),
+                result.message().contains("没从这句话里读出账目"));
+        assertEquals("空数组能过 schema，不该再重试一次", 1, result.attemptCount());
     }
 
     // ------------------------------------------------------------ 降级路径
@@ -326,7 +417,7 @@ public class ChatDraftParserTest {
         // 修正型重试的关键：第二次调用必须带上"上一次错在哪"
         FakeLlmClient client = new FakeLlmClient()
                 .thenReturnContentOnly("不是 JSON")
-                .thenReturnPayload("{\"direction\":\"expense\",\"amountCents\":800}");
+                .thenReturnPayload(one("{\"direction\":\"expense\",\"amountCents\":800}"));
 
         DraftParseResult result = parser(client).parse("吃了个饭", NOW);
 

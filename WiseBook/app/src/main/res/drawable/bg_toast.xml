@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 处理完成提示的底：深色圆角卡片。16dp 比页面里的卡片(20dp)略小，浮层显得更「轻」 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="@color/toast_surface" />
+    <corners android:radius="16dp" />
+</shape>

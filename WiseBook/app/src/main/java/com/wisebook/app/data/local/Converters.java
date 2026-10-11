@@ -14,6 +14,7 @@ import com.wisebook.app.domain.model.ConfirmMode;
 import com.wisebook.app.domain.model.Direction;
 import com.wisebook.app.domain.model.DraftSource;
 import com.wisebook.app.domain.model.DraftStatus;
+import com.wisebook.app.domain.model.LedgerCategoryMode;
 import com.wisebook.app.domain.model.EvidenceType;
 import com.wisebook.app.domain.model.OccurredAtSource;
 import com.wisebook.app.domain.model.PaymentMethod;
@@ -78,6 +79,18 @@ public final class Converters {
     @TypeConverter
     public static CategoryScheme toCategoryScheme(String code) {
         return CategoryScheme.fromCode(code);
+    }
+
+    // ---------------------------------------------------------------- 账本分类显示
+
+    @TypeConverter
+    public static String fromLedgerCategoryMode(LedgerCategoryMode mode) {
+        return mode == null ? null : mode.code();
+    }
+
+    @TypeConverter
+    public static LedgerCategoryMode toLedgerCategoryMode(String code) {
+        return LedgerCategoryMode.fromCode(code);
     }
 
     // ---------------------------------------------------------------- 收支方向

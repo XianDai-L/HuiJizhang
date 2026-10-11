@@ -65,9 +65,71 @@ public final class Migrations {
         }
     };
 
+    /**
+     * v2 → v3：设置表补「账本分类显示」（2026-10-08）。
+     *
+     * <p>背景：账本行原本永远铺完整路径（{@code 餐饮>外卖}），有反馈说一行里
+     * 二级分类太长、又和商户抢注意力，希望只看一级。做成设置项而不是直接改死，
+     * 是因为「简单 / 标准」两种偏好都合理，不该由开发者替用户定。
+     *
+     * <p>列为可空、且<b>回填 'standard'</b>：老用户升级后看到的必须和升级前一样，
+     * 不能因为一次升级就让账本换了副样子。回填也顺手让「空值」不会流到使用处。
+     */
+    public static final Migration MIGRATION_2_3 = new Migration(2, 3) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase db) {
+            db.execSQL("ALTER TABLE t_setting ADD COLUMN ledger_category_mode TEXT");
+            db.execSQL("UPDATE t_setting SET ledger_category_mode = 'standard'");
+        }
+    };
+
+    /**
+     * v3 → v4：多账本（2026-10-11）。
+     *
+     * <p>背景：用户要求「账本选择，像游戏存档那样」，也就是从单账本走向多账本。
+     * 隔离维度<b>复用既有的 {@code user_id}</b>（D1 §0 早就为将来预留了它），
+     * 所以这一版<b>不给任何已有表加列</b>——只新增一张存账本元信息的 {@code t_ledger}，
+     * 再把升级前那套数据（{@code user_id = 1}）登记成第一个账本。
+     *
+     * <p>另外补一条预置分类「人情 &gt; 转账」：转账在旧实现里是复用支出树、挂在
+     * 「人情」一级上（决策 27），现在单独给它一个二级分类，账目挂得更准。
+     * 新装的设备由 {@code CategorySeeder} 直接带上它，这一句只为升级的设备补。
+     */
+    public static final Migration MIGRATION_3_4 = new Migration(3, 4) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase db) {
+            // (1) 账本表。列定义必须与 LedgerEntity 完全一致，否则 Room 会判定
+            //     「迁移结果 ≠ 实体定义」而报错（HANDOFF §8-17）。
+            db.execSQL("CREATE TABLE IF NOT EXISTS `t_ledger` ("
+                    + "`ledger_id` INTEGER NOT NULL, "
+                    + "`name` TEXT, "
+                    + "`created_at` INTEGER NOT NULL, "
+                    + "`sort_order` INTEGER NOT NULL, "
+                    + "PRIMARY KEY(`ledger_id`))");
+
+            // (2) 把升级前的那套数据登记成第一个账本。用 IF NOT 语义（INSERT OR IGNORE）
+            //     避免重复执行时报主键冲突。名字固定，用户随后可重命名。
+            db.execSQL("INSERT OR IGNORE INTO t_ledger (ledger_id, name, created_at, sort_order)"
+                            + " VALUES (?, ?, ?, ?)",
+                    new Object[]{WiseBookDatabase.DEFAULT_USER_ID, "默认账本",
+                            System.currentTimeMillis(), 0});
+
+            // (3) 给已有账本的「人情」补一个二级分类「转账」。
+            //     用 SELECT 而不是写死 category_id：父分类的 id 是自增的，不可假设。
+            //     二级分类的 direction 恒为 NULL（方向由父级继承，见 CategoryEntity）。
+            db.execSQL("INSERT INTO t_category"
+                    + " (user_id, parent_id, level, name, is_system, is_archived,"
+                    + " sort_order, icon, direction)"
+                    + " SELECT user_id, category_id, 2, '转账', 1, 0, 99, NULL, NULL"
+                    + " FROM t_category WHERE parent_id IS NULL AND name = '人情'");
+        }
+    };
+
     /** 全部迁移，按 from → to 升序 */
     public static final Migration[] ALL = {
             MIGRATION_1_2,
+            MIGRATION_2_3,
+            MIGRATION_3_4,
     };
 
     /** 把收入一级分类名拼成 SQL 的 IN 列表 */

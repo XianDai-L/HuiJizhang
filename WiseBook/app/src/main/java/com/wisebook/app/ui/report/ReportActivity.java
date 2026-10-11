@@ -1,23 +1,27 @@
 package com.wisebook.app.ui.report;
 
+import android.content.res.ColorStateList;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.widget.CheckBox;
+import android.widget.CompoundButton;
 import android.widget.LinearLayout;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.wisebook.app.R;
 import com.wisebook.app.WiseBookApp;
-import com.wisebook.app.data.local.WiseBookDatabase;
 import com.wisebook.app.domain.classify.CategoryTree;
 import com.wisebook.app.domain.report.MonthlyReport;
+import com.wisebook.app.ui.CategoryColors;
 import com.wisebook.app.ui.DraftFormatter;
 import com.wisebook.app.ui.EdgeToEdgeInsets;
+import com.wisebook.app.ui.widget.MonthPicker;
 
 import java.time.ZoneId;
 import java.util.List;
@@ -46,7 +50,7 @@ public class ReportActivity extends AppCompatActivity {
     private TextView incomeHeader;
     private LinearLayout expenseRows;
     private LinearLayout incomeRows;
-    private CheckBox excludeTransfer;
+    private CompoundButton excludeTransfer;
 
     /** 报表与分类树是两条异步流，先到的那条不该导致渲染出半成品，所以都缓存下来 */
     private MonthlyReport lastReport;
@@ -59,7 +63,26 @@ public class ReportActivity extends AppCompatActivity {
         setContentView(R.layout.activity_report);
         EdgeToEdgeInsets.apply(findViewById(R.id.report_root));
 
+        findViewById(R.id.btn_back).setOnClickListener(view -> finish());
+
+        TextView totalButton = findViewById(R.id.btn_total);
+        totalButton.setOnClickListener(view -> {
+            viewModel.toggleTotal();
+            // 选中态用品牌紫：这两个按钮是开关，不是普通链接
+            totalButton.setTextColor(ContextCompat.getColor(this,
+                    viewModel.isTotal() ? R.color.brand : R.color.ink_2));
+        });
+
+        findViewById(R.id.btn_prev_month).setOnClickListener(view -> viewModel.shiftMonth(-1));
+        findViewById(R.id.btn_next_month).setOnClickListener(view -> viewModel.shiftMonth(1));
+
+        // 顺序不能反：range 必须先 findViewById 再挂监听。
+        // 2026-10-08 这里踩过一次——监听写在赋值之前，于是「点报表直接闪退」
+        // （NullPointerException，堆栈指向本文件的 onCreate）。
         range = findViewById(R.id.range);
+        range.setOnClickListener(view -> MonthPicker.show(this,
+                viewModel.range().year, viewModel.range().month,
+                (year, month) -> viewModel.selectMonth(year, month)));
         expenseTotal = findViewById(R.id.expense_total);
         incomeTotal = findViewById(R.id.income_total);
         estimateNote = findViewById(R.id.estimate_note);
@@ -76,7 +99,7 @@ public class ReportActivity extends AppCompatActivity {
                 app.reportRepository(),
                 app.categoryRepository(),
                 app.databaseExecutor(),
-                WiseBookDatabase.DEFAULT_USER_ID,
+                app.currentLedgerId(),
                 ZoneId.systemDefault()))
                 .get(ReportViewModel.class);
 
@@ -106,7 +129,11 @@ public class ReportActivity extends AppCompatActivity {
         if (lastReport == null) {
             return;
         }
-        range.setText(getString(R.string.report_title) + " · " + lastReport.range.label());
+        // 总计模式下没有"哪个月"可言，写「全部账目」；
+        // MonthRange.all() 的 label 是「0 年 0 月」，不能直接拿来用
+        range.setText(viewModel.isTotal()
+                ? getString(R.string.ledger_range_total)
+                : lastReport.range.label());
         expenseTotal.setText(DraftFormatter.groupedAmount(lastReport.expenseCents));
         incomeTotal.setText(DraftFormatter.groupedAmount(lastReport.incomeCents));
 
@@ -175,20 +202,43 @@ public class ReportActivity extends AppCompatActivity {
         container.removeAllViews();
         if (rows.isEmpty()) {
             header.setVisibility(View.GONE);
+            // 容器也要跟着藏：它是张卡片背景，空着会在页面上留一条没有内容的白色横条
+            container.setVisibility(View.GONE);
             return;
         }
         header.setVisibility(View.VISIBLE);
+        container.setVisibility(View.VISIBLE);
         LayoutInflater inflater = LayoutInflater.from(this);
         for (MonthlyReport.CategoryRow row : rows) {
             View view = inflater.inflate(R.layout.item_report_row, container, false);
             String name = DraftFormatter.categoryName(tree, row.rootCategoryId);
-            ((TextView) view.findViewById(R.id.row_name)).setText(
-                    (name.isEmpty() ? "分类 #" + row.rootCategoryId : name)
-                            + "（" + row.entryCount + " 笔）");
+            if (name.isEmpty()) {
+                name = "分类 #" + row.rootCategoryId;
+            }
+
+            // 色块与账本行用的是同一套颜色（CategoryColors）：
+            // 用户在这一页认出来的橙色，翻回账本还得是同一个分类
+            int background = CategoryColors.backgroundOf(row.rootCategoryId);
+            int foreground = CategoryColors.foregroundOf(row.rootCategoryId);
+
+            TextView category = view.findViewById(R.id.row_cat);
+            category.setText(name.substring(0, 1));
+            category.setTextColor(ContextCompat.getColor(this, foreground));
+            category.setBackgroundTintList(ColorStateList.valueOf(
+                    ContextCompat.getColor(this, background)));
+
+            ((TextView) view.findViewById(R.id.row_name)).setText(name);
             ((TextView) view.findViewById(R.id.row_share))
                     .setText(DraftFormatter.percent(row.sharePermille));
             ((TextView) view.findViewById(R.id.row_amount))
-                    .setText(DraftFormatter.groupedAmount(row.totalCents));
+                    .setText(DraftFormatter.groupedYuan(row.totalCents));
+
+            // 条长与旁边那个百分比同源，不会出现「写着 42% 却画了一半」
+            ProgressBar bar = view.findViewById(R.id.row_bar);
+            bar.setProgress(row.sharePermille);
+            bar.setProgressTintList(ColorStateList.valueOf(
+                    ContextCompat.getColor(this, foreground)));
+
             container.addView(view);
         }
     }

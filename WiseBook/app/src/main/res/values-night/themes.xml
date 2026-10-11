@@ -1,7 +1,16 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
-    <style name="Base.Theme.MyApplication" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Customize your dark theme here. -->
-        <!-- <item name="colorPrimary">@color/my_dark_primary</item> -->
+    <!--
+      同名覆盖 values/themes.xml 里的 Base.Theme.WiseBook。
+
+      注意一个历史问题：这份文件原来的 style 名是模板残留的 Base.Theme.MyApplication，
+      与亮色那份的 Base.Theme.WiseBook 对不上 —— 也就是说深色主题从未生效过，
+      M3 的 DayNight 会切主题，但切到的是一份空定义。
+
+      颜色本身都通过 @color/ 引用，会随 values-night/colors.xml 自动切换，
+      所以这里只覆盖「不是颜色」的项。
+    -->
+    <style name="Base.Theme.WiseBook" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- 深色底上系统栏图标要用亮色，否则时间和电量看不见 -->
+        <item name="android:windowLightStatusBar">false</item>
     </style>
 </resources>

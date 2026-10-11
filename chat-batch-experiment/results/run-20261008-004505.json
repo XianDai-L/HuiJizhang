@@ -1,0 +1,2728 @@
+[
+  {
+    "route": "S0 现状（单笔工具 + 只报笔数）",
+    "sample": "s01",
+    "kind": "单笔·最简单",
+    "text": "楼下小馆吃面 28",
+    "model": "deepseek-chat",
+    "expectedCount": 1,
+    "reportedCount": 1,
+    "attempts": 1,
+    "firstPass": true,
+    "secondStep": false,
+    "secondStepFailed": false,
+    "millis": 1761,
+    "attemptRecords": [
+      {
+        "index": 1,
+        "kind": "OK",
+        "detail": ""
+      }
+    ],
+    "entries": [
+      {
+        "amountCents": 2800,
+        "direction": "expense"
+      }
+    ],
+    "truth": [
+      {
+        "amountCents": 2800,
+        "direction": "expense"
+      }
+    ],
+    "hit": {
+      "countHit": true,
+      "overSplit": false,
+      "underSplit": false,
+      "firstAmountHit": true,
+      "firstDirectionHit": true,
+      "amountAllHit": true,
+      "directionAllHit": true
+    },
+    "payload": {
+      "direction": "expense",
+      "amountCents": 2800,
+      "amountRaw": "28",
+      "categoryPath": "餐饮\u003e聚餐",
+      "items": [
+        "面"
+      ],
+      "transactionCount": 1
+    }
+  },
+  {
+    "route": "S0 现状（单笔工具 + 只报笔数）",
+    "sample": "s02",
+    "kind": "单笔·带时间",
+    "text": "昨天下午打车 35",
+    "model": "deepseek-chat",
+    "expectedCount": 1,
+    "reportedCount": 1,
+    "attempts": 1,
+    "firstPass": true,
+    "secondStep": false,
+    "secondStepFailed": false,
+    "millis": 749,
+    "attemptRecords": [
+      {
+        "index": 1,
+        "kind": "OK",
+        "detail": ""
+      }
+    ],
+    "entries": [
+      {
+        "amountCents": 3500,
+        "direction": "expense",
+        "occurredAtText": "昨天下午"
+      }
+    ],
+    "truth": [
+      {
+        "amountCents": 3500,
+        "direction": "expense",
+        "occurredAtText": "昨天下午"
+      }
+    ],
+    "hit": {
+      "countHit": true,
+      "overSplit": false,
+      "underSplit": false,
+      "firstAmountHit": true,
+      "firstDirectionHit": true,
+      "amountAllHit": true,
+      "directionAllHit": true
+    },
+    "payload": {
+      "direction": "expense",
+      "amountCents": 3500,
+      "amountRaw": "35",
+      "occurredAtText": "昨天下午",
+      "categoryPath": "交通\u003e打车",
+      "transactionCount": 1
+    }
+  },
+  {
+    "route": "S0 现状（单笔工具 + 只报笔数）",
+    "sample": "s03",
+    "kind": "单笔·约数",
+    "text": "买游戏花了三百五左右",
+    "model": "deepseek-chat",
+    "expectedCount": 1,
+    "reportedCount": 1,
+    "attempts": 1,
+    "firstPass": true,
+    "secondStep": false,
+    "secondStepFailed": false,
+    "millis": 943,
+    "attemptRecords": [
+      {
+        "index": 1,
+        "kind": "OK",
+        "detail": ""
+      }
+    ],
+    "entries": [
+      {
+        "amountCents": 35000,
+        "direction": "expense"
+      }
+    ],
+    "truth": [
+      {
+        "amountCents": 35000,
+        "direction": "expense"
+      }
+    ],
+    "hit": {
+      "countHit": true,
+      "overSplit": false,
+      "underSplit": false,
+      "firstAmountHit": true,
+      "firstDirectionHit": true,
+      "amountAllHit": true,
+      "directionAllHit": true
+    },
+    "payload": {
+      "direction": "expense",
+      "amountCents": 35000,
+      "amountRaw": "三百五左右",
+      "categoryPath": "娱乐\u003e游戏",
+      "transactionCount": 1
+    }
+  },
+  {
+    "route": "S0 现状（单笔工具 + 只报笔数）",
+    "sample": "s04",
+    "kind": "单笔·收入",
+    "text": "发工资了 7500",
+    "model": "deepseek-chat",
+    "expectedCount": 1,
+    "reportedCount": 1,
+    "attempts": 1,
+    "firstPass": true,
+    "secondStep": false,
+    "secondStepFailed": false,
+    "millis": 855,
+    "attemptRecords": [
+      {
+        "index": 1,
+        "kind": "OK",
+        "detail": ""
+      }
+    ],
+    "entries": [
+      {
+        "amountCents": 750000,
+        "direction": "income"
+      }
+    ],
+    "truth": [
+      {
+        "amountCents": 750000,
+        "direction": "income"
+      }
+    ],
+    "hit": {
+      "countHit": true,
+      "overSplit": false,
+      "underSplit": false,
+      "firstAmountHit": true,
+      "firstDirectionHit": true,
+      "amountAllHit": true,
+      "directionAllHit": true
+    },
+    "payload": {
+      "direction": "income",
+      "amountCents": 750000,
+      "amountRaw": "7500",
+      "categoryPath": "工资",
+      "transactionCount": 1
+    }
+  },
+  {
+    "route": "S0 现状（单笔工具 + 只报笔数）",
+    "sample": "s05",
+    "kind": "单笔·转账",
+    "text": "给妈转了 1000",
+    "model": "deepseek-chat",
+    "expectedCount": 1,
+    "reportedCount": 1,
+    "attempts": 1,
+    "firstPass": true,
+    "secondStep": false,
+    "secondStepFailed": false,
+    "millis": 944,
+    "attemptRecords": [
+      {
+        "index": 1,
+        "kind": "OK",
+        "detail": ""
+      }
+    ],
+    "entries": [
+      {
+        "amountCents": 100000,
+        "direction": "transfer",
+        "merchant": "妈"
+      }
+    ],
+    "truth": [
+      {
+        "amountCents": 100000,
+        "direction": "transfer"
+      }
+    ],
+    "hit": {
+      "countHit": true,
+      "overSplit": false,
+      "underSplit": false,
+      "firstAmountHit": true,
+      "firstDirectionHit": true,
+      "amountAllHit": true,
+      "directionAllHit": true
+    },
+    "payload": {
+      "direction": "transfer",
+      "amountCents": 100000,
+      "amountRaw": "1000",
+      "categoryPath": "人情\u003e红包",
+      "merchant": "妈",
+      "transactionCount": 1
+    }
+  },
+  {
+    "route": "S0 现状（单笔工具 + 只报笔数）",
+    "sample": "s06",
+    "kind": "单笔·干扰数字",
+    "text": "三个人吃了 120",
+    "model": "deepseek-chat",
+    "expectedCount": 1,
+    "reportedCount": 1,
+    "attempts": 1,
+    "firstPass": true,
+    "secondStep": false,
+    "secondStepFailed": false,
+    "millis": 740,
+    "attemptRecords": [
+      {
+        "index": 1,
+        "kind": "OK",
+        "detail": ""
+      }
+    ],
+    "entries": [
+      {
+        "amountCents": 12000,
+        "direction": "expense"
+      }
+    ],
+    "truth": [
+      {
+        "amountCents": 12000,
+        "direction": "expense"
+      }
+    ],
+    "hit": {
+      "countHit": true,
+      "overSplit": false,
+      "underSplit": false,
+      "firstAmountHit": true,
+      "firstDirectionHit": true,
+      "amountAllHit": true,
+      "directionAllHit": true
+    },
+    "payload": {
+      "direction": "expense",
+      "amountCents": 12000,
+      "amountRaw": "120",
+      "categoryPath": "餐饮\u003e聚餐",
+      "transactionCount": 1
+    }
+  },
+  {
+    "route": "S0 现状（单笔工具 + 只报笔数）",
+    "sample": "s07",
+    "kind": "单笔·带商户",
+    "text": "今天星巴克 32",
+    "model": "deepseek-chat",
+    "expectedCount": 1,
+    "reportedCount": 1,
+    "attempts": 1,
+    "firstPass": true,
+    "secondStep": false,
+    "secondStepFailed": false,
+    "millis": 968,
+    "attemptRecords": [
+      {
+        "index": 1,
+        "kind": "OK",
+        "detail": ""
+      }
+    ],
+    "entries": [
+      {
+        "amountCents": 3200,
+        "direction": "expense",
+        "occurredAtText": "今天",
+        "merchant": "星巴克"
+      }
+    ],
+    "truth": [
+      {
+        "amountCents": 3200,
+        "direction": "expense",
+        "occurredAtText": "今天"
+      }
+    ],
+    "hit": {
+      "countHit": true,
+      "overSplit": false,
+      "underSplit": false,
+      "firstAmountHit": true,
+      "firstDirectionHit": true,
+      "amountAllHit": true,
+      "directionAllHit": true
+    },
+    "payload": {
+      "direction": "expense",
+      "amountCents": 3200,
+      "amountRaw": "32",
+      "occurredAtText": "今天",
+      "categoryPath": "餐饮\u003e咖啡",
+      "merchant": "星巴克",
+      "transactionCount": 1
+    }
+  },
+  {
+    "route": "S0 现状（单笔工具 + 只报笔数）",
+    "sample": "m01",
+    "kind": "多笔2·逗号并列",
+    "text": "早饭8块，打车17",
+    "model": "deepseek-chat",
+    "expectedCount": 2,
+    "reportedCount": 2,
+    "attempts": 1,
+    "firstPass": true,
+    "secondStep": false,
+    "secondStepFailed": false,
+    "millis": 869,
+    "attemptRecords": [
+      {
+        "index": 1,
+        "kind": "OK",
+        "detail": ""
+      }
+    ],
+    "entries": [
+      {
+        "amountCents": 800,
+        "direction": "expense"
+      }
+    ],
+    "truth": [
+      {
+        "amountCents": 800,
+        "direction": "expense"
+      },
+      {
+        "amountCents": 1700,
+        "direction": "expense"
+      }
+    ],
+    "hit": {
+      "countHit": true,
+      "overSplit": false,
+      "underSplit": false,
+      "firstAmountHit": true,
+      "firstDirectionHit": true
+    },
+    "payload": {
+      "direction": "expense",
+      "amountCents": 800,
+      "amountRaw": "8块",
+      "categoryPath": "餐饮\u003e外卖",
+      "transactionCount": 2
+    }
+  },
+  {
+    "route": "S0 现状（单笔工具 + 只报笔数）",
+    "sample": "m02",
+    "kind": "多笔2·各自带时间",
+    "text": "昨天买菜 56，今天买水果 30",
+    "model": "deepseek-chat",
+    "expectedCount": 2,
+    "reportedCount": 2,
+    "attempts": 1,
+    "firstPass": true,
+    "secondStep": false,
+    "secondStepFailed": false,
+    "millis": 1189,
+    "attemptRecords": [
+      {
+        "index": 1,
+        "kind": "OK",
+        "detail": ""
+      }
+    ],
+    "entries": [
+      {
+        "amountCents": 5600,
+        "direction": "expense",
+        "occurredAtText": "昨天"
+      }
+    ],
+    "truth": [
+      {
+        "amountCents": 5600,
+        "direction": "expense",
+        "occurredAtText": "昨天"
+      },
+      {
+        "amountCents": 3000,
+        "direction": "expense",
+        "occurredAtText": "今天"
+      }
+    ],
+    "hit": {
+      "countHit": true,
+      "overSplit": false,
+      "underSplit": false,
+      "firstAmountHit": true,
+      "firstDirectionHit": true
+    },
+    "payload": {
+      "direction": "expense",
+      "amountCents": 5600,
+      "amountRaw": "56",
+      "occurredAtText": "昨天",
+      "categoryPath": "餐饮\u003e买菜",
+      "transactionCount": 2
+    }
+  },
+  {
+    "route": "S0 现状（单笔工具 + 只报笔数）",
+    "sample": "m03",
+    "kind": "多笔3·并列",
+    "text": "房租 2500，水电 180，网费 99",
+    "model": "deepseek-chat",
+    "expectedCount": 3,
+    "reportedCount": 3,
+    "attempts": 1,
+    "firstPass": true,
+    "secondStep": false,
+    "secondStepFailed": false,
+    "millis": 1160,
+    "attemptRecords": [
+      {
+        "index": 1,
+        "kind": "OK",
+        "detail": ""
+      }
+    ],
+    "entries": [
+      {
+        "amountCents": 250000,
+        "direction": "expense"
+      }
+    ],
+    "truth": [
+      {
+        "amountCents": 250000,
+        "direction": "expense"
+      },
+      {
+        "amountCents": 18000,
+        "direction": "expense"
+      },
+      {
+        "amountCents": 9900,
+        "direction": "expense"
+      }
+    ],
+    "hit": {
+      "countHit": true,
+      "overSplit": false,
+      "underSplit": false,
+      "firstAmountHit": true,
+      "firstDirectionHit": true
+    },
+    "payload": {
+      "direction": "expense",
+      "amountCents": 250000,
+      "amountRaw": "2500",
+      "categoryPath": "居住\u003e房租",
+      "transactionCount": 3
+    }
+  },
+  {
+    "route": "S0 现状（单笔工具 + 只报笔数）",
+    "sample": "m04",
+    "kind": "多笔2·混合方向",
+    "text": "发工资 8000，还花呗 1200",
+    "model": "deepseek-chat",
+    "expectedCount": 2,
+    "reportedCount": 2,
+    "attempts": 1,
+    "firstPass": true,
+    "secondStep": false,
+    "secondStepFailed": false,
+    "millis": 992,
+    "attemptRecords": [
+      {
+        "index": 1,
+        "kind": "OK",
+        "detail": ""
+      }
+    ],
+    "entries": [
+      {
+        "amountCents": 800000,
+        "direction": "income"
+      }
+    ],
+    "truth": [
+      {
+        "amountCents": 800000,
+        "direction": "income"
+      },
+      {
+        "amountCents": 120000,
+        "direction": "transfer"
+      }
+    ],
+    "hit": {
+      "countHit": true,
+      "overSplit": false,
+      "underSplit": false,
+      "firstAmountHit": true,
+      "firstDirectionHit": true
+    },
+    "payload": {
+      "direction": "income",
+      "amountCents": 800000,
+      "amountRaw": "8000",
+      "categoryPath": "工资",
+      "transactionCount": 2
+    }
+  },
+  {
+    "route": "S0 现状（单笔工具 + 只报笔数）",
+    "sample": "m05",
+    "kind": "多笔2·连词",
+    "text": "买了个键盘 399 和鼠标 129",
+    "model": "deepseek-chat",
+    "expectedCount": 2,
+    "reportedCount": 2,
+    "attempts": 1,
+    "firstPass": true,
+    "secondStep": false,
+    "secondStepFailed": false,
+    "millis": 1047,
+    "attemptRecords": [
+      {
+        "index": 1,
+        "kind": "OK",
+        "detail": ""
+      }
+    ],
+    "entries": [
+      {
+        "amountCents": 39900,
+        "direction": "expense"
+      }
+    ],
+    "truth": [
+      {
+        "amountCents": 39900,
+        "direction": "expense"
+      },
+      {
+        "amountCents": 12900,
+        "direction": "expense"
+      }
+    ],
+    "hit": {
+      "countHit": true,
+      "overSplit": false,
+      "underSplit": false,
+      "firstAmountHit": true,
+      "firstDirectionHit": true
+    },
+    "payload": {
+      "direction": "expense",
+      "amountCents": 39900,
+      "amountRaw": "399",
+      "categoryPath": "购物\u003e数码",
+      "items": [
+        "键盘"
+      ],
+      "transactionCount": 2
+    }
+  },
+  {
+    "route": "S0 现状（单笔工具 + 只报笔数）",
+    "sample": "m06",
+    "kind": "多笔3·时段并列",
+    "text": "早上一杯咖啡 25，中午请客 260，晚上电影票 45",
+    "model": "deepseek-chat",
+    "expectedCount": 3,
+    "reportedCount": 3,
+    "attempts": 1,
+    "firstPass": true,
+    "secondStep": false,
+    "secondStepFailed": false,
+    "millis": 1319,
+    "attemptRecords": [
+      {
+        "index": 1,
+        "kind": "OK",
+        "detail": ""
+      }
+    ],
+    "entries": [
+      {
+        "amountCents": 2500,
+        "direction": "expense",
+        "occurredAtText": "早上"
+      }
+    ],
+    "truth": [
+      {
+        "amountCents": 2500,
+        "direction": "expense",
+        "occurredAtText": "早上"
+      },
+      {
+        "amountCents": 26000,
+        "direction": "expense",
+        "occurredAtText": "中午"
+      },
+      {
+        "amountCents": 4500,
+        "direction": "expense",
+        "occurredAtText": "晚上"
+      }
+    ],
+    "hit": {
+      "countHit": true,
+      "overSplit": false,
+      "underSplit": false,
+      "firstAmountHit": true,
+      "firstDirectionHit": true
+    },
+    "payload": {
+      "direction": "expense",
+      "amountCents": 2500,
+      "amountRaw": "25",
+      "occurredAtText": "早上",
+      "categoryPath": "餐饮\u003e咖啡",
+      "transactionCount": 3
+    }
+  },
+  {
+    "route": "S0 现状（单笔工具 + 只报笔数）",
+    "sample": "m07",
+    "kind": "多笔2·混合方向",
+    "text": "打车 17 块，另外给小李转了 200",
+    "model": "deepseek-chat",
+    "expectedCount": 2,
+    "reportedCount": 2,
+    "attempts": 1,
+    "firstPass": true,
+    "secondStep": false,
+    "secondStepFailed": false,
+    "millis": 900,
+    "attemptRecords": [
+      {
+        "index": 1,
+        "kind": "OK",
+        "detail": ""
+      }
+    ],
+    "entries": [
+      {
+        "amountCents": 1700,
+        "direction": "expense"
+      }
+    ],
+    "truth": [
+      {
+        "amountCents": 1700,
+        "direction": "expense"
+      },
+      {
+        "amountCents": 20000,
+        "direction": "transfer"
+      }
+    ],
+    "hit": {
+      "countHit": true,
+      "overSplit": false,
+      "underSplit": false,
+      "firstAmountHit": true,
+      "firstDirectionHit": true
+    },
+    "payload": {
+      "direction": "expense",
+      "amountCents": 1700,
+      "amountRaw": "17 块",
+      "categoryPath": "交通\u003e打车",
+      "transactionCount": 2
+    }
+  },
+  {
+    "route": "S0 现状（单笔工具 + 只报笔数）",
+    "sample": "m08",
+    "kind": "陷阱·合并总额",
+    "text": "这个月买菜加打车一共花了 1000",
+    "model": "deepseek-chat",
+    "expectedCount": 1,
+    "reportedCount": 2,
+    "attempts": 1,
+    "firstPass": true,
+    "secondStep": false,
+    "secondStepFailed": false,
+    "millis": 1140,
+    "attemptRecords": [
+      {
+        "index": 1,
+        "kind": "OK",
+        "detail": ""
+      }
+    ],
+    "entries": [
+      {
+        "amountCents": 100000,
+        "direction": "expense",
+        "occurredAtText": "这个月"
+      }
+    ],
+    "truth": [
+      {
+        "amountCents": 100000,
+        "direction": "expense"
+      }
+    ],
+    "hit": {
+      "countHit": false,
+      "overSplit": true,
+      "underSplit": false,
+      "firstAmountHit": true,
+      "firstDirectionHit": true,
+      "amountAllHit": true,
+      "directionAllHit": true
+    },
+    "payload": {
+      "direction": "expense",
+      "amountCents": 100000,
+      "amountRaw": "1000",
+      "occurredAtText": "这个月",
+      "categoryPath": "餐饮\u003e买菜",
+      "transactionCount": 2
+    }
+  },
+  {
+    "route": "A 批量工具（数组输出）",
+    "sample": "s01",
+    "kind": "单笔·最简单",
+    "text": "楼下小馆吃面 28",
+    "model": "deepseek-chat",
+    "expectedCount": 1,
+    "reportedCount": 1,
+    "attempts": 1,
+    "firstPass": true,
+    "secondStep": false,
+    "secondStepFailed": false,
+    "millis": 832,
+    "attemptRecords": [
+      {
+        "index": 1,
+        "kind": "OK",
+        "detail": ""
+      }
+    ],
+    "entries": [
+      {
+        "amountCents": 2800,
+        "direction": "expense",
+        "merchant": "楼下小馆"
+      }
+    ],
+    "truth": [
+      {
+        "amountCents": 2800,
+        "direction": "expense"
+      }
+    ],
+    "hit": {
+      "countHit": true,
+      "overSplit": false,
+      "underSplit": false,
+      "firstAmountHit": true,
+      "firstDirectionHit": true,
+      "amountAllHit": true,
+      "directionAllHit": true
+    },
+    "payload": {
+      "drafts": [
+        {
+          "direction": "expense",
+          "amountCents": 2800,
+          "amountRaw": "28",
+          "merchant": "楼下小馆",
+          "categoryPath": "餐饮\u003e聚餐",
+          "transactionCount": 1
+        }
+      ]
+    }
+  },
+  {
+    "route": "A 批量工具（数组输出）",
+    "sample": "s02",
+    "kind": "单笔·带时间",
+    "text": "昨天下午打车 35",
+    "model": "deepseek-chat",
+    "expectedCount": 1,
+    "reportedCount": 1,
+    "attempts": 1,
+    "firstPass": true,
+    "secondStep": false,
+    "secondStepFailed": false,
+    "millis": 784,
+    "attemptRecords": [
+      {
+        "index": 1,
+        "kind": "OK",
+        "detail": ""
+      }
+    ],
+    "entries": [
+      {
+        "amountCents": 3500,
+        "direction": "expense",
+        "occurredAtText": "昨天下午"
+      }
+    ],
+    "truth": [
+      {
+        "amountCents": 3500,
+        "direction": "expense",
+        "occurredAtText": "昨天下午"
+      }
+    ],
+    "hit": {
+      "countHit": true,
+      "overSplit": false,
+      "underSplit": false,
+      "firstAmountHit": true,
+      "firstDirectionHit": true,
+      "amountAllHit": true,
+      "directionAllHit": true
+    },
+    "payload": {
+      "drafts": [
+        {
+          "direction": "expense",
+          "amountCents": 3500,
+          "amountRaw": "35",
+          "occurredAtText": "昨天下午",
+          "categoryPath": "交通\u003e打车",
+          "transactionCount": 1
+        }
+      ]
+    }
+  },
+  {
+    "route": "A 批量工具（数组输出）",
+    "sample": "s03",
+    "kind": "单笔·约数",
+    "text": "买游戏花了三百五左右",
+    "model": "deepseek-chat",
+    "expectedCount": 1,
+    "reportedCount": 1,
+    "attempts": 1,
+    "firstPass": true,
+    "secondStep": false,
+    "secondStepFailed": false,
+    "millis": 1166,
+    "attemptRecords": [
+      {
+        "index": 1,
+        "kind": "OK",
+        "detail": ""
+      }
+    ],
+    "entries": [
+      {
+        "amountCents": 35000,
+        "direction": "expense"
+      }
+    ],
+    "truth": [
+      {
+        "amountCents": 35000,
+        "direction": "expense"
+      }
+    ],
+    "hit": {
+      "countHit": true,
+      "overSplit": false,
+      "underSplit": false,
+      "firstAmountHit": true,
+      "firstDirectionHit": true,
+      "amountAllHit": true,
+      "directionAllHit": true
+    },
+    "payload": {
+      "drafts": [
+        {
+          "direction": "expense",
+          "amountCents": 35000,
+          "amountRaw": "三百五左右",
+          "categoryPath": "娱乐\u003e游戏"
+        }
+      ]
+    }
+  },
+  {
+    "route": "A 批量工具（数组输出）",
+    "sample": "s04",
+    "kind": "单笔·收入",
+    "text": "发工资了 7500",
+    "model": "deepseek-chat",
+    "expectedCount": 1,
+    "reportedCount": 1,
+    "attempts": 1,
+    "firstPass": true,
+    "secondStep": false,
+    "secondStepFailed": false,
+    "millis": 1044,
+    "attemptRecords": [
+      {
+        "index": 1,
+        "kind": "OK",
+        "detail": ""
+      }
+    ],
+    "entries": [
+      {
+        "amountCents": 750000,
+        "direction": "income"
+      }
+    ],
+    "truth": [
+      {
+        "amountCents": 750000,
+        "direction": "income"
+      }
+    ],
+    "hit": {
+      "countHit": true,
+      "overSplit": false,
+      "underSplit": false,
+      "firstAmountHit": true,
+      "firstDirectionHit": true,
+      "amountAllHit": true,
+      "directionAllHit": true
+    },
+    "payload": {
+      "drafts": [
+        {
+          "direction": "income",
+          "amountCents": 750000,
+          "amountRaw": "7500",
+          "categoryPath": "工资"
+        }
+      ]
+    }
+  },
+  {
+    "route": "A 批量工具（数组输出）",
+    "sample": "s05",
+    "kind": "单笔·转账",
+    "text": "给妈转了 1000",
+    "model": "deepseek-chat",
+    "expectedCount": 1,
+    "reportedCount": 1,
+    "attempts": 1,
+    "firstPass": true,
+    "secondStep": false,
+    "secondStepFailed": false,
+    "millis": 991,
+    "attemptRecords": [
+      {
+        "index": 1,
+        "kind": "OK",
+        "detail": ""
+      }
+    ],
+    "entries": [
+      {
+        "amountCents": 100000,
+        "direction": "transfer",
+        "merchant": "妈"
+      }
+    ],
+    "truth": [
+      {
+        "amountCents": 100000,
+        "direction": "transfer"
+      }
+    ],
+    "hit": {
+      "countHit": true,
+      "overSplit": false,
+      "underSplit": false,
+      "firstAmountHit": true,
+      "firstDirectionHit": true,
+      "amountAllHit": true,
+      "directionAllHit": true
+    },
+    "payload": {
+      "drafts": [
+        {
+          "direction": "transfer",
+          "amountCents": 100000,
+          "amountRaw": "1000",
+          "merchant": "妈",
+          "categoryPath": "人情\u003e红包"
+        }
+      ]
+    }
+  },
+  {
+    "route": "A 批量工具（数组输出）",
+    "sample": "s06",
+    "kind": "单笔·干扰数字",
+    "text": "三个人吃了 120",
+    "model": "deepseek-chat",
+    "expectedCount": 1,
+    "reportedCount": 1,
+    "attempts": 1,
+    "firstPass": true,
+    "secondStep": false,
+    "secondStepFailed": false,
+    "millis": 1112,
+    "attemptRecords": [
+      {
+        "index": 1,
+        "kind": "OK",
+        "detail": ""
+      }
+    ],
+    "entries": [
+      {
+        "amountCents": 12000,
+        "direction": "expense"
+      }
+    ],
+    "truth": [
+      {
+        "amountCents": 12000,
+        "direction": "expense"
+      }
+    ],
+    "hit": {
+      "countHit": true,
+      "overSplit": false,
+      "underSplit": false,
+      "firstAmountHit": true,
+      "firstDirectionHit": true,
+      "amountAllHit": true,
+      "directionAllHit": true
+    },
+    "payload": {
+      "drafts": [
+        {
+          "direction": "expense",
+          "amountCents": 12000,
+          "amountRaw": "120",
+          "categoryPath": "餐饮\u003e聚餐",
+          "note": "三个人"
+        }
+      ]
+    }
+  },
+  {
+    "route": "A 批量工具（数组输出）",
+    "sample": "s07",
+    "kind": "单笔·带商户",
+    "text": "今天星巴克 32",
+    "model": "deepseek-chat",
+    "expectedCount": 1,
+    "reportedCount": 1,
+    "attempts": 1,
+    "firstPass": true,
+    "secondStep": false,
+    "secondStepFailed": false,
+    "millis": 1122,
+    "attemptRecords": [
+      {
+        "index": 1,
+        "kind": "OK",
+        "detail": ""
+      }
+    ],
+    "entries": [
+      {
+        "amountCents": 3200,
+        "direction": "expense",
+        "occurredAtText": "今天",
+        "merchant": "星巴克"
+      }
+    ],
+    "truth": [
+      {
+        "amountCents": 3200,
+        "direction": "expense",
+        "occurredAtText": "今天"
+      }
+    ],
+    "hit": {
+      "countHit": true,
+      "overSplit": false,
+      "underSplit": false,
+      "firstAmountHit": true,
+      "firstDirectionHit": true,
+      "amountAllHit": true,
+      "directionAllHit": true
+    },
+    "payload": {
+      "drafts": [
+        {
+          "direction": "expense",
+          "amountCents": 3200,
+          "amountRaw": "32",
+          "occurredAtText": "今天",
+          "merchant": "星巴克",
+          "categoryPath": "餐饮\u003e咖啡",
+          "transactionCount": 1
+        }
+      ]
+    }
+  },
+  {
+    "route": "A 批量工具（数组输出）",
+    "sample": "m01",
+    "kind": "多笔2·逗号并列",
+    "text": "早饭8块，打车17",
+    "model": "deepseek-chat",
+    "expectedCount": 2,
+    "reportedCount": 2,
+    "attempts": 1,
+    "firstPass": true,
+    "secondStep": false,
+    "secondStepFailed": false,
+    "millis": 974,
+    "attemptRecords": [
+      {
+        "index": 1,
+        "kind": "OK",
+        "detail": ""
+      }
+    ],
+    "entries": [
+      {
+        "amountCents": 800,
+        "direction": "expense"
+      },
+      {
+        "amountCents": 1700,
+        "direction": "expense"
+      }
+    ],
+    "truth": [
+      {
+        "amountCents": 800,
+        "direction": "expense"
+      },
+      {
+        "amountCents": 1700,
+        "direction": "expense"
+      }
+    ],
+    "hit": {
+      "countHit": true,
+      "overSplit": false,
+      "underSplit": false,
+      "firstAmountHit": true,
+      "firstDirectionHit": true,
+      "amountAllHit": true,
+      "directionAllHit": true
+    },
+    "payload": {
+      "drafts": [
+        {
+          "direction": "expense",
+          "amountCents": 800,
+          "amountRaw": "8块",
+          "categoryPath": "餐饮\u003e买菜",
+          "note": "早饭"
+        },
+        {
+          "direction": "expense",
+          "amountCents": 1700,
+          "amountRaw": "17",
+          "categoryPath": "交通\u003e打车"
+        }
+      ]
+    }
+  },
+  {
+    "route": "A 批量工具（数组输出）",
+    "sample": "m02",
+    "kind": "多笔2·各自带时间",
+    "text": "昨天买菜 56，今天买水果 30",
+    "model": "deepseek-chat",
+    "expectedCount": 2,
+    "reportedCount": 2,
+    "attempts": 1,
+    "firstPass": true,
+    "secondStep": false,
+    "secondStepFailed": false,
+    "millis": 1042,
+    "attemptRecords": [
+      {
+        "index": 1,
+        "kind": "OK",
+        "detail": ""
+      }
+    ],
+    "entries": [
+      {
+        "amountCents": 5600,
+        "direction": "expense",
+        "occurredAtText": "昨天"
+      },
+      {
+        "amountCents": 3000,
+        "direction": "expense",
+        "occurredAtText": "今天"
+      }
+    ],
+    "truth": [
+      {
+        "amountCents": 5600,
+        "direction": "expense",
+        "occurredAtText": "昨天"
+      },
+      {
+        "amountCents": 3000,
+        "direction": "expense",
+        "occurredAtText": "今天"
+      }
+    ],
+    "hit": {
+      "countHit": true,
+      "overSplit": false,
+      "underSplit": false,
+      "firstAmountHit": true,
+      "firstDirectionHit": true,
+      "amountAllHit": true,
+      "directionAllHit": true
+    },
+    "payload": {
+      "drafts": [
+        {
+          "direction": "expense",
+          "amountCents": 5600,
+          "amountRaw": "56",
+          "occurredAtText": "昨天",
+          "categoryPath": "餐饮\u003e买菜"
+        },
+        {
+          "direction": "expense",
+          "amountCents": 3000,
+          "amountRaw": "30",
+          "occurredAtText": "今天",
+          "categoryPath": "餐饮\u003e零食"
+        }
+      ]
+    }
+  },
+  {
+    "route": "A 批量工具（数组输出）",
+    "sample": "m03",
+    "kind": "多笔3·并列",
+    "text": "房租 2500，水电 180，网费 99",
+    "model": "deepseek-chat",
+    "expectedCount": 3,
+    "reportedCount": 3,
+    "attempts": 1,
+    "firstPass": true,
+    "secondStep": false,
+    "secondStepFailed": false,
+    "millis": 1170,
+    "attemptRecords": [
+      {
+        "index": 1,
+        "kind": "OK",
+        "detail": ""
+      }
+    ],
+    "entries": [
+      {
+        "amountCents": 250000,
+        "direction": "expense"
+      },
+      {
+        "amountCents": 18000,
+        "direction": "expense"
+      },
+      {
+        "amountCents": 9900,
+        "direction": "expense"
+      }
+    ],
+    "truth": [
+      {
+        "amountCents": 250000,
+        "direction": "expense"
+      },
+      {
+        "amountCents": 18000,
+        "direction": "expense"
+      },
+      {
+        "amountCents": 9900,
+        "direction": "expense"
+      }
+    ],
+    "hit": {
+      "countHit": true,
+      "overSplit": false,
+      "underSplit": false,
+      "firstAmountHit": true,
+      "firstDirectionHit": true,
+      "amountAllHit": true,
+      "directionAllHit": true
+    },
+    "payload": {
+      "drafts": [
+        {
+          "direction": "expense",
+          "amountCents": 250000,
+          "amountRaw": "2500",
+          "categoryPath": "居住\u003e房租"
+        },
+        {
+          "direction": "expense",
+          "amountCents": 18000,
+          "amountRaw": "180",
+          "categoryPath": "居住\u003e水电燃气"
+        },
+        {
+          "direction": "expense",
+          "amountCents": 9900,
+          "amountRaw": "99",
+          "categoryPath": "通讯\u003e宽带"
+        }
+      ]
+    }
+  },
+  {
+    "route": "A 批量工具（数组输出）",
+    "sample": "m04",
+    "kind": "多笔2·混合方向",
+    "text": "发工资 8000，还花呗 1200",
+    "model": "deepseek-chat",
+    "expectedCount": 2,
+    "reportedCount": 2,
+    "attempts": 2,
+    "firstPass": false,
+    "secondStep": false,
+    "secondStepFailed": false,
+    "millis": 1434,
+    "attemptRecords": [
+      {
+        "index": 1,
+        "kind": "SCHEMA_ERROR",
+        "detail": "drafts[2]：字段 categoryPath 取值超出允许范围：\"人情\"（允许 [\"餐饮\u003e买菜\",\"餐饮\u003e外卖\",\"餐饮\u003e咖啡\",\"餐饮\u003e饮品\",\"餐饮\u003e零食\",\"餐饮\u003e聚餐\",\"交通\u003e公交地铁\",\"交通\u003e打车\",\"交通\u003e加油\",\"交通\u003e停车\",\"交通\u003e机票火车\",\"交通\u003e共享单车\",\"购物\u003e服饰\",\"购物\u003e数码\",\"购物\u003e日用\",\"购物\u003e美妆\",\"购物\u003e母婴\",\"居住\u003e房租\",\"居住\u003e水电燃气\",\"居住\u003e物业\",\"居住\u003e家居\",\"通讯\u003e话费\",\"通讯\u003e宽带\",\"娱乐\u003e游戏\",\"娱乐\u003e影音\",\"娱乐\u003e旅行\",\"娱乐\u003e运动\",\"医疗\u003e门诊\",\"医疗\u003e药品\",\"医疗\u003e体检\",\"教育\u003e学费\",\"教育\u003e书籍\",\"教育\u003e培训\",\"人情\u003e红包\",\"人情\u003e礼物\",\"人情\u003e请客\",\"其他\",\"工资\",\"奖金\",\"兼职\",\"投资\",\"红包\",\"其他收入\"]）"
+      },
+      {
+        "index": 2,
+        "kind": "OK",
+        "detail": ""
+      }
+    ],
+    "entries": [
+      {
+        "amountCents": 800000,
+        "direction": "income"
+      },
+      {
+        "amountCents": 120000,
+        "direction": "transfer"
+      }
+    ],
+    "truth": [
+      {
+        "amountCents": 800000,
+        "direction": "income"
+      },
+      {
+        "amountCents": 120000,
+        "direction": "transfer"
+      }
+    ],
+    "hit": {
+      "countHit": true,
+      "overSplit": false,
+      "underSplit": false,
+      "firstAmountHit": true,
+      "firstDirectionHit": true,
+      "amountAllHit": true,
+      "directionAllHit": true
+    },
+    "payload": {
+      "drafts": [
+        {
+          "direction": "income",
+          "amountCents": 800000,
+          "amountRaw": "8000",
+          "categoryPath": "工资",
+          "note": "发工资"
+        },
+        {
+          "direction": "transfer",
+          "amountCents": 120000,
+          "amountRaw": "1200",
+          "categoryPath": "人情\u003e请客",
+          "note": "还花呗"
+        }
+      ]
+    }
+  },
+  {
+    "route": "A 批量工具（数组输出）",
+    "sample": "m05",
+    "kind": "多笔2·连词",
+    "text": "买了个键盘 399 和鼠标 129",
+    "model": "deepseek-chat",
+    "expectedCount": 2,
+    "reportedCount": 2,
+    "attempts": 1,
+    "firstPass": true,
+    "secondStep": false,
+    "secondStepFailed": false,
+    "millis": 866,
+    "attemptRecords": [
+      {
+        "index": 1,
+        "kind": "OK",
+        "detail": ""
+      }
+    ],
+    "entries": [
+      {
+        "amountCents": 39900,
+        "direction": "expense"
+      },
+      {
+        "amountCents": 12900,
+        "direction": "expense"
+      }
+    ],
+    "truth": [
+      {
+        "amountCents": 39900,
+        "direction": "expense"
+      },
+      {
+        "amountCents": 12900,
+        "direction": "expense"
+      }
+    ],
+    "hit": {
+      "countHit": true,
+      "overSplit": false,
+      "underSplit": false,
+      "firstAmountHit": true,
+      "firstDirectionHit": true,
+      "amountAllHit": true,
+      "directionAllHit": true
+    },
+    "payload": {
+      "drafts": [
+        {
+          "direction": "expense",
+          "amountCents": 39900,
+          "amountRaw": "399",
+          "categoryPath": "购物\u003e数码",
+          "items": [
+            "键盘"
+          ]
+        },
+        {
+          "direction": "expense",
+          "amountCents": 12900,
+          "amountRaw": "129",
+          "categoryPath": "购物\u003e数码",
+          "items": [
+            "鼠标"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "route": "A 批量工具（数组输出）",
+    "sample": "m06",
+    "kind": "多笔3·时段并列",
+    "text": "早上一杯咖啡 25，中午请客 260，晚上电影票 45",
+    "model": "deepseek-chat",
+    "expectedCount": 3,
+    "reportedCount": 3,
+    "attempts": 1,
+    "firstPass": true,
+    "secondStep": false,
+    "secondStepFailed": false,
+    "millis": 1170,
+    "attemptRecords": [
+      {
+        "index": 1,
+        "kind": "OK",
+        "detail": ""
+      }
+    ],
+    "entries": [
+      {
+        "amountCents": 2500,
+        "direction": "expense",
+        "occurredAtText": "早上"
+      },
+      {
+        "amountCents": 26000,
+        "direction": "expense",
+        "occurredAtText": "中午"
+      },
+      {
+        "amountCents": 4500,
+        "direction": "expense",
+        "occurredAtText": "晚上"
+      }
+    ],
+    "truth": [
+      {
+        "amountCents": 2500,
+        "direction": "expense",
+        "occurredAtText": "早上"
+      },
+      {
+        "amountCents": 26000,
+        "direction": "expense",
+        "occurredAtText": "中午"
+      },
+      {
+        "amountCents": 4500,
+        "direction": "expense",
+        "occurredAtText": "晚上"
+      }
+    ],
+    "hit": {
+      "countHit": true,
+      "overSplit": false,
+      "underSplit": false,
+      "firstAmountHit": true,
+      "firstDirectionHit": true,
+      "amountAllHit": true,
+      "directionAllHit": true
+    },
+    "payload": {
+      "drafts": [
+        {
+          "direction": "expense",
+          "amountCents": 2500,
+          "amountRaw": "25",
+          "occurredAtText": "早上",
+          "categoryPath": "餐饮\u003e咖啡",
+          "note": "一杯咖啡"
+        },
+        {
+          "direction": "expense",
+          "amountCents": 26000,
+          "amountRaw": "260",
+          "occurredAtText": "中午",
+          "categoryPath": "人情\u003e请客"
+        },
+        {
+          "direction": "expense",
+          "amountCents": 4500,
+          "amountRaw": "45",
+          "occurredAtText": "晚上",
+          "categoryPath": "娱乐\u003e影音",
+          "note": "电影票"
+        }
+      ]
+    }
+  },
+  {
+    "route": "A 批量工具（数组输出）",
+    "sample": "m07",
+    "kind": "多笔2·混合方向",
+    "text": "打车 17 块，另外给小李转了 200",
+    "model": "deepseek-chat",
+    "expectedCount": 2,
+    "reportedCount": 2,
+    "attempts": 2,
+    "firstPass": false,
+    "secondStep": false,
+    "secondStepFailed": false,
+    "millis": 1961,
+    "attemptRecords": [
+      {
+        "index": 1,
+        "kind": "SCHEMA_ERROR",
+        "detail": "drafts[2]：字段 categoryPath 取值超出允许范围：\"人情\"（允许 [\"餐饮\u003e买菜\",\"餐饮\u003e外卖\",\"餐饮\u003e咖啡\",\"餐饮\u003e饮品\",\"餐饮\u003e零食\",\"餐饮\u003e聚餐\",\"交通\u003e公交地铁\",\"交通\u003e打车\",\"交通\u003e加油\",\"交通\u003e停车\",\"交通\u003e机票火车\",\"交通\u003e共享单车\",\"购物\u003e服饰\",\"购物\u003e数码\",\"购物\u003e日用\",\"购物\u003e美妆\",\"购物\u003e母婴\",\"居住\u003e房租\",\"居住\u003e水电燃气\",\"居住\u003e物业\",\"居住\u003e家居\",\"通讯\u003e话费\",\"通讯\u003e宽带\",\"娱乐\u003e游戏\",\"娱乐\u003e影音\",\"娱乐\u003e旅行\",\"娱乐\u003e运动\",\"医疗\u003e门诊\",\"医疗\u003e药品\",\"医疗\u003e体检\",\"教育\u003e学费\",\"教育\u003e书籍\",\"教育\u003e培训\",\"人情\u003e红包\",\"人情\u003e礼物\",\"人情\u003e请客\",\"其他\",\"工资\",\"奖金\",\"兼职\",\"投资\",\"红包\",\"其他收入\"]）"
+      },
+      {
+        "index": 2,
+        "kind": "OK",
+        "detail": ""
+      }
+    ],
+    "entries": [
+      {
+        "amountCents": 1700,
+        "direction": "expense"
+      },
+      {
+        "amountCents": 20000,
+        "direction": "transfer",
+        "merchant": "小李"
+      }
+    ],
+    "truth": [
+      {
+        "amountCents": 1700,
+        "direction": "expense"
+      },
+      {
+        "amountCents": 20000,
+        "direction": "transfer"
+      }
+    ],
+    "hit": {
+      "countHit": true,
+      "overSplit": false,
+      "underSplit": false,
+      "firstAmountHit": true,
+      "firstDirectionHit": true,
+      "amountAllHit": true,
+      "directionAllHit": true
+    },
+    "payload": {
+      "drafts": [
+        {
+          "direction": "expense",
+          "amountCents": 1700,
+          "amountRaw": "17 块",
+          "categoryPath": "交通\u003e打车"
+        },
+        {
+          "direction": "transfer",
+          "amountCents": 20000,
+          "amountRaw": "200",
+          "merchant": "小李",
+          "categoryPath": "人情\u003e红包"
+        }
+      ]
+    }
+  },
+  {
+    "route": "A 批量工具（数组输出）",
+    "sample": "m08",
+    "kind": "陷阱·合并总额",
+    "text": "这个月买菜加打车一共花了 1000",
+    "model": "deepseek-chat",
+    "expectedCount": 1,
+    "reportedCount": 1,
+    "attempts": 1,
+    "firstPass": true,
+    "secondStep": false,
+    "secondStepFailed": false,
+    "millis": 906,
+    "attemptRecords": [
+      {
+        "index": 1,
+        "kind": "OK",
+        "detail": ""
+      }
+    ],
+    "entries": [
+      {
+        "amountCents": 100000,
+        "direction": "expense",
+        "occurredAtText": "这个月"
+      }
+    ],
+    "truth": [
+      {
+        "amountCents": 100000,
+        "direction": "expense"
+      }
+    ],
+    "hit": {
+      "countHit": true,
+      "overSplit": false,
+      "underSplit": false,
+      "firstAmountHit": true,
+      "firstDirectionHit": true,
+      "amountAllHit": true,
+      "directionAllHit": true
+    },
+    "payload": {
+      "drafts": [
+        {
+          "direction": "expense",
+          "amountCents": 100000,
+          "amountRaw": "1000",
+          "occurredAtText": "这个月",
+          "categoryPath": "餐饮\u003e买菜",
+          "note": "买菜加打车合计"
+        }
+      ]
+    }
+  },
+  {
+    "route": "B 两步（先单笔，多笔时补一次批量）",
+    "sample": "s01",
+    "kind": "单笔·最简单",
+    "text": "楼下小馆吃面 28",
+    "model": "deepseek-chat",
+    "expectedCount": 1,
+    "reportedCount": 1,
+    "attempts": 1,
+    "firstPass": true,
+    "secondStep": false,
+    "secondStepFailed": false,
+    "millis": 940,
+    "attemptRecords": [
+      {
+        "index": 1,
+        "kind": "OK",
+        "detail": ""
+      }
+    ],
+    "entries": [
+      {
+        "amountCents": 2800,
+        "direction": "expense"
+      }
+    ],
+    "truth": [
+      {
+        "amountCents": 2800,
+        "direction": "expense"
+      }
+    ],
+    "hit": {
+      "countHit": true,
+      "overSplit": false,
+      "underSplit": false,
+      "firstAmountHit": true,
+      "firstDirectionHit": true,
+      "amountAllHit": true,
+      "directionAllHit": true
+    },
+    "payload": {
+      "direction": "expense",
+      "amountCents": 2800,
+      "amountRaw": "28",
+      "categoryPath": "餐饮\u003e聚餐",
+      "items": [
+        "面"
+      ],
+      "transactionCount": 1
+    }
+  },
+  {
+    "route": "B 两步（先单笔，多笔时补一次批量）",
+    "sample": "s02",
+    "kind": "单笔·带时间",
+    "text": "昨天下午打车 35",
+    "model": "deepseek-chat",
+    "expectedCount": 1,
+    "reportedCount": 1,
+    "attempts": 1,
+    "firstPass": true,
+    "secondStep": false,
+    "secondStepFailed": false,
+    "millis": 1048,
+    "attemptRecords": [
+      {
+        "index": 1,
+        "kind": "OK",
+        "detail": ""
+      }
+    ],
+    "entries": [
+      {
+        "amountCents": 3500,
+        "direction": "expense",
+        "occurredAtText": "昨天下午"
+      }
+    ],
+    "truth": [
+      {
+        "amountCents": 3500,
+        "direction": "expense",
+        "occurredAtText": "昨天下午"
+      }
+    ],
+    "hit": {
+      "countHit": true,
+      "overSplit": false,
+      "underSplit": false,
+      "firstAmountHit": true,
+      "firstDirectionHit": true,
+      "amountAllHit": true,
+      "directionAllHit": true
+    },
+    "payload": {
+      "direction": "expense",
+      "amountCents": 3500,
+      "amountRaw": "35",
+      "occurredAtText": "昨天下午",
+      "categoryPath": "交通\u003e打车",
+      "transactionCount": 1
+    }
+  },
+  {
+    "route": "B 两步（先单笔，多笔时补一次批量）",
+    "sample": "s03",
+    "kind": "单笔·约数",
+    "text": "买游戏花了三百五左右",
+    "model": "deepseek-chat",
+    "expectedCount": 1,
+    "reportedCount": 1,
+    "attempts": 1,
+    "firstPass": true,
+    "secondStep": false,
+    "secondStepFailed": false,
+    "millis": 1019,
+    "attemptRecords": [
+      {
+        "index": 1,
+        "kind": "OK",
+        "detail": ""
+      }
+    ],
+    "entries": [
+      {
+        "amountCents": 35000,
+        "direction": "expense"
+      }
+    ],
+    "truth": [
+      {
+        "amountCents": 35000,
+        "direction": "expense"
+      }
+    ],
+    "hit": {
+      "countHit": true,
+      "overSplit": false,
+      "underSplit": false,
+      "firstAmountHit": true,
+      "firstDirectionHit": true,
+      "amountAllHit": true,
+      "directionAllHit": true
+    },
+    "payload": {
+      "direction": "expense",
+      "amountCents": 35000,
+      "amountRaw": "三百五左右",
+      "categoryPath": "娱乐\u003e游戏",
+      "transactionCount": 1
+    }
+  },
+  {
+    "route": "B 两步（先单笔，多笔时补一次批量）",
+    "sample": "s04",
+    "kind": "单笔·收入",
+    "text": "发工资了 7500",
+    "model": "deepseek-chat",
+    "expectedCount": 1,
+    "reportedCount": 1,
+    "attempts": 1,
+    "firstPass": true,
+    "secondStep": false,
+    "secondStepFailed": false,
+    "millis": 983,
+    "attemptRecords": [
+      {
+        "index": 1,
+        "kind": "OK",
+        "detail": ""
+      }
+    ],
+    "entries": [
+      {
+        "amountCents": 750000,
+        "direction": "income"
+      }
+    ],
+    "truth": [
+      {
+        "amountCents": 750000,
+        "direction": "income"
+      }
+    ],
+    "hit": {
+      "countHit": true,
+      "overSplit": false,
+      "underSplit": false,
+      "firstAmountHit": true,
+      "firstDirectionHit": true,
+      "amountAllHit": true,
+      "directionAllHit": true
+    },
+    "payload": {
+      "direction": "income",
+      "amountCents": 750000,
+      "amountRaw": "7500",
+      "categoryPath": "工资",
+      "transactionCount": 1
+    }
+  },
+  {
+    "route": "B 两步（先单笔，多笔时补一次批量）",
+    "sample": "s05",
+    "kind": "单笔·转账",
+    "text": "给妈转了 1000",
+    "model": "deepseek-chat",
+    "expectedCount": 1,
+    "reportedCount": 1,
+    "attempts": 1,
+    "firstPass": true,
+    "secondStep": false,
+    "secondStepFailed": false,
+    "millis": 1221,
+    "attemptRecords": [
+      {
+        "index": 1,
+        "kind": "OK",
+        "detail": ""
+      }
+    ],
+    "entries": [
+      {
+        "amountCents": 100000,
+        "direction": "transfer",
+        "merchant": "妈"
+      }
+    ],
+    "truth": [
+      {
+        "amountCents": 100000,
+        "direction": "transfer"
+      }
+    ],
+    "hit": {
+      "countHit": true,
+      "overSplit": false,
+      "underSplit": false,
+      "firstAmountHit": true,
+      "firstDirectionHit": true,
+      "amountAllHit": true,
+      "directionAllHit": true
+    },
+    "payload": {
+      "direction": "transfer",
+      "amountCents": 100000,
+      "amountRaw": "1000",
+      "merchant": "妈",
+      "categoryPath": "人情\u003e红包",
+      "transactionCount": 1
+    }
+  },
+  {
+    "route": "B 两步（先单笔，多笔时补一次批量）",
+    "sample": "s06",
+    "kind": "单笔·干扰数字",
+    "text": "三个人吃了 120",
+    "model": "deepseek-chat",
+    "expectedCount": 1,
+    "reportedCount": 1,
+    "attempts": 1,
+    "firstPass": true,
+    "secondStep": false,
+    "secondStepFailed": false,
+    "millis": 1148,
+    "attemptRecords": [
+      {
+        "index": 1,
+        "kind": "OK",
+        "detail": ""
+      }
+    ],
+    "entries": [
+      {
+        "amountCents": 12000,
+        "direction": "expense"
+      }
+    ],
+    "truth": [
+      {
+        "amountCents": 12000,
+        "direction": "expense"
+      }
+    ],
+    "hit": {
+      "countHit": true,
+      "overSplit": false,
+      "underSplit": false,
+      "firstAmountHit": true,
+      "firstDirectionHit": true,
+      "amountAllHit": true,
+      "directionAllHit": true
+    },
+    "payload": {
+      "direction": "expense",
+      "amountCents": 12000,
+      "amountRaw": "120",
+      "categoryPath": "餐饮\u003e聚餐",
+      "transactionCount": 1
+    }
+  },
+  {
+    "route": "B 两步（先单笔，多笔时补一次批量）",
+    "sample": "s07",
+    "kind": "单笔·带商户",
+    "text": "今天星巴克 32",
+    "model": "deepseek-chat",
+    "expectedCount": 1,
+    "reportedCount": 1,
+    "attempts": 1,
+    "firstPass": true,
+    "secondStep": false,
+    "secondStepFailed": false,
+    "millis": 986,
+    "attemptRecords": [
+      {
+        "index": 1,
+        "kind": "OK",
+        "detail": ""
+      }
+    ],
+    "entries": [
+      {
+        "amountCents": 3200,
+        "direction": "expense",
+        "occurredAtText": "今天",
+        "merchant": "星巴克"
+      }
+    ],
+    "truth": [
+      {
+        "amountCents": 3200,
+        "direction": "expense",
+        "occurredAtText": "今天"
+      }
+    ],
+    "hit": {
+      "countHit": true,
+      "overSplit": false,
+      "underSplit": false,
+      "firstAmountHit": true,
+      "firstDirectionHit": true,
+      "amountAllHit": true,
+      "directionAllHit": true
+    },
+    "payload": {
+      "direction": "expense",
+      "amountCents": 3200,
+      "amountRaw": "32",
+      "occurredAtText": "今天",
+      "categoryPath": "餐饮\u003e咖啡",
+      "merchant": "星巴克",
+      "transactionCount": 1
+    }
+  },
+  {
+    "route": "B 两步（先单笔，多笔时补一次批量）",
+    "sample": "m01",
+    "kind": "多笔2·逗号并列",
+    "text": "早饭8块，打车17",
+    "model": "deepseek-chat",
+    "expectedCount": 2,
+    "reportedCount": 2,
+    "attempts": 2,
+    "firstPass": true,
+    "secondStep": true,
+    "secondStepFailed": false,
+    "millis": 1786,
+    "attemptRecords": [
+      {
+        "index": 1,
+        "kind": "OK",
+        "detail": ""
+      },
+      {
+        "index": 1,
+        "kind": "OK",
+        "detail": ""
+      }
+    ],
+    "entries": [
+      {
+        "amountCents": 800,
+        "direction": "expense"
+      },
+      {
+        "amountCents": 1700,
+        "direction": "expense"
+      }
+    ],
+    "truth": [
+      {
+        "amountCents": 800,
+        "direction": "expense"
+      },
+      {
+        "amountCents": 1700,
+        "direction": "expense"
+      }
+    ],
+    "hit": {
+      "countHit": true,
+      "overSplit": false,
+      "underSplit": false,
+      "firstAmountHit": true,
+      "firstDirectionHit": true,
+      "amountAllHit": true,
+      "directionAllHit": true
+    },
+    "payload": {
+      "drafts": [
+        {
+          "direction": "expense",
+          "amountCents": 800,
+          "amountRaw": "8块",
+          "categoryPath": "餐饮\u003e买菜",
+          "note": "早饭"
+        },
+        {
+          "direction": "expense",
+          "amountCents": 1700,
+          "amountRaw": "17",
+          "categoryPath": "交通\u003e打车"
+        }
+      ]
+    }
+  },
+  {
+    "route": "B 两步（先单笔，多笔时补一次批量）",
+    "sample": "m02",
+    "kind": "多笔2·各自带时间",
+    "text": "昨天买菜 56，今天买水果 30",
+    "model": "deepseek-chat",
+    "expectedCount": 2,
+    "reportedCount": 2,
+    "attempts": 2,
+    "firstPass": true,
+    "secondStep": true,
+    "secondStepFailed": false,
+    "millis": 2564,
+    "attemptRecords": [
+      {
+        "index": 1,
+        "kind": "OK",
+        "detail": ""
+      },
+      {
+        "index": 1,
+        "kind": "OK",
+        "detail": ""
+      }
+    ],
+    "entries": [
+      {
+        "amountCents": 5600,
+        "direction": "expense",
+        "occurredAtText": "昨天"
+      },
+      {
+        "amountCents": 3000,
+        "direction": "expense",
+        "occurredAtText": "今天"
+      }
+    ],
+    "truth": [
+      {
+        "amountCents": 5600,
+        "direction": "expense",
+        "occurredAtText": "昨天"
+      },
+      {
+        "amountCents": 3000,
+        "direction": "expense",
+        "occurredAtText": "今天"
+      }
+    ],
+    "hit": {
+      "countHit": true,
+      "overSplit": false,
+      "underSplit": false,
+      "firstAmountHit": true,
+      "firstDirectionHit": true,
+      "amountAllHit": true,
+      "directionAllHit": true
+    },
+    "payload": {
+      "drafts": [
+        {
+          "direction": "expense",
+          "amountCents": 5600,
+          "amountRaw": "56",
+          "occurredAtText": "昨天",
+          "categoryPath": "餐饮\u003e买菜"
+        },
+        {
+          "direction": "expense",
+          "amountCents": 3000,
+          "amountRaw": "30",
+          "occurredAtText": "今天",
+          "categoryPath": "餐饮\u003e买菜"
+        }
+      ]
+    }
+  },
+  {
+    "route": "B 两步（先单笔，多笔时补一次批量）",
+    "sample": "m03",
+    "kind": "多笔3·并列",
+    "text": "房租 2500，水电 180，网费 99",
+    "model": "deepseek-chat",
+    "expectedCount": 3,
+    "reportedCount": 3,
+    "attempts": 2,
+    "firstPass": true,
+    "secondStep": true,
+    "secondStepFailed": false,
+    "millis": 1679,
+    "attemptRecords": [
+      {
+        "index": 1,
+        "kind": "OK",
+        "detail": ""
+      },
+      {
+        "index": 1,
+        "kind": "OK",
+        "detail": ""
+      }
+    ],
+    "entries": [
+      {
+        "amountCents": 250000,
+        "direction": "expense"
+      },
+      {
+        "amountCents": 18000,
+        "direction": "expense"
+      },
+      {
+        "amountCents": 9900,
+        "direction": "expense"
+      }
+    ],
+    "truth": [
+      {
+        "amountCents": 250000,
+        "direction": "expense"
+      },
+      {
+        "amountCents": 18000,
+        "direction": "expense"
+      },
+      {
+        "amountCents": 9900,
+        "direction": "expense"
+      }
+    ],
+    "hit": {
+      "countHit": true,
+      "overSplit": false,
+      "underSplit": false,
+      "firstAmountHit": true,
+      "firstDirectionHit": true,
+      "amountAllHit": true,
+      "directionAllHit": true
+    },
+    "payload": {
+      "drafts": [
+        {
+          "direction": "expense",
+          "amountCents": 250000,
+          "amountRaw": "2500",
+          "categoryPath": "居住\u003e房租"
+        },
+        {
+          "direction": "expense",
+          "amountCents": 18000,
+          "amountRaw": "180",
+          "categoryPath": "居住\u003e水电燃气"
+        },
+        {
+          "direction": "expense",
+          "amountCents": 9900,
+          "amountRaw": "99",
+          "categoryPath": "通讯\u003e宽带"
+        }
+      ]
+    }
+  },
+  {
+    "route": "B 两步（先单笔，多笔时补一次批量）",
+    "sample": "m04",
+    "kind": "多笔2·混合方向",
+    "text": "发工资 8000，还花呗 1200",
+    "model": "deepseek-chat",
+    "expectedCount": 2,
+    "reportedCount": 2,
+    "attempts": 3,
+    "firstPass": false,
+    "secondStep": true,
+    "secondStepFailed": false,
+    "millis": 2642,
+    "attemptRecords": [
+      {
+        "index": 1,
+        "kind": "OK",
+        "detail": ""
+      },
+      {
+        "index": 1,
+        "kind": "SCHEMA_ERROR",
+        "detail": "drafts[2]：字段 categoryPath 取值超出允许范围：\"人情\"（允许 [\"餐饮\u003e买菜\",\"餐饮\u003e外卖\",\"餐饮\u003e咖啡\",\"餐饮\u003e饮品\",\"餐饮\u003e零食\",\"餐饮\u003e聚餐\",\"交通\u003e公交地铁\",\"交通\u003e打车\",\"交通\u003e加油\",\"交通\u003e停车\",\"交通\u003e机票火车\",\"交通\u003e共享单车\",\"购物\u003e服饰\",\"购物\u003e数码\",\"购物\u003e日用\",\"购物\u003e美妆\",\"购物\u003e母婴\",\"居住\u003e房租\",\"居住\u003e水电燃气\",\"居住\u003e物业\",\"居住\u003e家居\",\"通讯\u003e话费\",\"通讯\u003e宽带\",\"娱乐\u003e游戏\",\"娱乐\u003e影音\",\"娱乐\u003e旅行\",\"娱乐\u003e运动\",\"医疗\u003e门诊\",\"医疗\u003e药品\",\"医疗\u003e体检\",\"教育\u003e学费\",\"教育\u003e书籍\",\"教育\u003e培训\",\"人情\u003e红包\",\"人情\u003e礼物\",\"人情\u003e请客\",\"其他\",\"工资\",\"奖金\",\"兼职\",\"投资\",\"红包\",\"其他收入\"]）"
+      },
+      {
+        "index": 2,
+        "kind": "OK",
+        "detail": ""
+      }
+    ],
+    "entries": [
+      {
+        "amountCents": 800000,
+        "direction": "income"
+      },
+      {
+        "amountCents": 120000,
+        "direction": "transfer",
+        "merchant": "花呗"
+      }
+    ],
+    "truth": [
+      {
+        "amountCents": 800000,
+        "direction": "income"
+      },
+      {
+        "amountCents": 120000,
+        "direction": "transfer"
+      }
+    ],
+    "hit": {
+      "countHit": true,
+      "overSplit": false,
+      "underSplit": false,
+      "firstAmountHit": true,
+      "firstDirectionHit": true,
+      "amountAllHit": true,
+      "directionAllHit": true
+    },
+    "payload": {
+      "drafts": [
+        {
+          "direction": "income",
+          "amountCents": 800000,
+          "amountRaw": "8000",
+          "categoryPath": "工资"
+        },
+        {
+          "direction": "transfer",
+          "amountCents": 120000,
+          "amountRaw": "1200",
+          "categoryPath": "人情\u003e红包",
+          "merchant": "花呗"
+        }
+      ]
+    }
+  },
+  {
+    "route": "B 两步（先单笔，多笔时补一次批量）",
+    "sample": "m05",
+    "kind": "多笔2·连词",
+    "text": "买了个键盘 399 和鼠标 129",
+    "model": "deepseek-chat",
+    "expectedCount": 2,
+    "reportedCount": 2,
+    "attempts": 2,
+    "firstPass": true,
+    "secondStep": true,
+    "secondStepFailed": false,
+    "millis": 2732,
+    "attemptRecords": [
+      {
+        "index": 1,
+        "kind": "OK",
+        "detail": ""
+      },
+      {
+        "index": 1,
+        "kind": "OK",
+        "detail": ""
+      }
+    ],
+    "entries": [
+      {
+        "amountCents": 39900,
+        "direction": "expense"
+      },
+      {
+        "amountCents": 12900,
+        "direction": "expense"
+      }
+    ],
+    "truth": [
+      {
+        "amountCents": 39900,
+        "direction": "expense"
+      },
+      {
+        "amountCents": 12900,
+        "direction": "expense"
+      }
+    ],
+    "hit": {
+      "countHit": true,
+      "overSplit": false,
+      "underSplit": false,
+      "firstAmountHit": true,
+      "firstDirectionHit": true,
+      "amountAllHit": true,
+      "directionAllHit": true
+    },
+    "payload": {
+      "drafts": [
+        {
+          "direction": "expense",
+          "amountCents": 39900,
+          "amountRaw": "399",
+          "categoryPath": "购物\u003e数码",
+          "items": [
+            "键盘"
+          ]
+        },
+        {
+          "direction": "expense",
+          "amountCents": 12900,
+          "amountRaw": "129",
+          "categoryPath": "购物\u003e数码",
+          "items": [
+            "鼠标"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "route": "B 两步（先单笔，多笔时补一次批量）",
+    "sample": "m06",
+    "kind": "多笔3·时段并列",
+    "text": "早上一杯咖啡 25，中午请客 260，晚上电影票 45",
+    "model": "deepseek-chat",
+    "expectedCount": 3,
+    "reportedCount": 3,
+    "attempts": 2,
+    "firstPass": true,
+    "secondStep": true,
+    "secondStepFailed": false,
+    "millis": 2142,
+    "attemptRecords": [
+      {
+        "index": 1,
+        "kind": "OK",
+        "detail": ""
+      },
+      {
+        "index": 1,
+        "kind": "OK",
+        "detail": ""
+      }
+    ],
+    "entries": [
+      {
+        "amountCents": 2500,
+        "direction": "expense",
+        "occurredAtText": "早上"
+      },
+      {
+        "amountCents": 26000,
+        "direction": "expense",
+        "occurredAtText": "中午"
+      },
+      {
+        "amountCents": 4500,
+        "direction": "expense",
+        "occurredAtText": "晚上"
+      }
+    ],
+    "truth": [
+      {
+        "amountCents": 2500,
+        "direction": "expense",
+        "occurredAtText": "早上"
+      },
+      {
+        "amountCents": 26000,
+        "direction": "expense",
+        "occurredAtText": "中午"
+      },
+      {
+        "amountCents": 4500,
+        "direction": "expense",
+        "occurredAtText": "晚上"
+      }
+    ],
+    "hit": {
+      "countHit": true,
+      "overSplit": false,
+      "underSplit": false,
+      "firstAmountHit": true,
+      "firstDirectionHit": true,
+      "amountAllHit": true,
+      "directionAllHit": true
+    },
+    "payload": {
+      "drafts": [
+        {
+          "direction": "expense",
+          "amountCents": 2500,
+          "amountRaw": "25",
+          "occurredAtText": "早上",
+          "categoryPath": "餐饮\u003e咖啡",
+          "note": "一杯咖啡"
+        },
+        {
+          "direction": "expense",
+          "amountCents": 26000,
+          "amountRaw": "260",
+          "occurredAtText": "中午",
+          "categoryPath": "人情\u003e请客"
+        },
+        {
+          "direction": "expense",
+          "amountCents": 4500,
+          "amountRaw": "45",
+          "occurredAtText": "晚上",
+          "categoryPath": "娱乐\u003e影音",
+          "note": "电影票"
+        }
+      ]
+    }
+  },
+  {
+    "route": "B 两步（先单笔，多笔时补一次批量）",
+    "sample": "m07",
+    "kind": "多笔2·混合方向",
+    "text": "打车 17 块，另外给小李转了 200",
+    "model": "deepseek-chat",
+    "expectedCount": 2,
+    "reportedCount": 2,
+    "attempts": 3,
+    "firstPass": false,
+    "secondStep": true,
+    "secondStepFailed": false,
+    "millis": 3142,
+    "attemptRecords": [
+      {
+        "index": 1,
+        "kind": "OK",
+        "detail": ""
+      },
+      {
+        "index": 1,
+        "kind": "SCHEMA_ERROR",
+        "detail": "drafts[2]：字段 categoryPath 取值超出允许范围：\"人情\"（允许 [\"餐饮\u003e买菜\",\"餐饮\u003e外卖\",\"餐饮\u003e咖啡\",\"餐饮\u003e饮品\",\"餐饮\u003e零食\",\"餐饮\u003e聚餐\",\"交通\u003e公交地铁\",\"交通\u003e打车\",\"交通\u003e加油\",\"交通\u003e停车\",\"交通\u003e机票火车\",\"交通\u003e共享单车\",\"购物\u003e服饰\",\"购物\u003e数码\",\"购物\u003e日用\",\"购物\u003e美妆\",\"购物\u003e母婴\",\"居住\u003e房租\",\"居住\u003e水电燃气\",\"居住\u003e物业\",\"居住\u003e家居\",\"通讯\u003e话费\",\"通讯\u003e宽带\",\"娱乐\u003e游戏\",\"娱乐\u003e影音\",\"娱乐\u003e旅行\",\"娱乐\u003e运动\",\"医疗\u003e门诊\",\"医疗\u003e药品\",\"医疗\u003e体检\",\"教育\u003e学费\",\"教育\u003e书籍\",\"教育\u003e培训\",\"人情\u003e红包\",\"人情\u003e礼物\",\"人情\u003e请客\",\"其他\",\"工资\",\"奖金\",\"兼职\",\"投资\",\"红包\",\"其他收入\"]）"
+      },
+      {
+        "index": 2,
+        "kind": "OK",
+        "detail": ""
+      }
+    ],
+    "entries": [
+      {
+        "amountCents": 1700,
+        "direction": "expense"
+      },
+      {
+        "amountCents": 20000,
+        "direction": "transfer",
+        "merchant": "小李"
+      }
+    ],
+    "truth": [
+      {
+        "amountCents": 1700,
+        "direction": "expense"
+      },
+      {
+        "amountCents": 20000,
+        "direction": "transfer"
+      }
+    ],
+    "hit": {
+      "countHit": true,
+      "overSplit": false,
+      "underSplit": false,
+      "firstAmountHit": true,
+      "firstDirectionHit": true,
+      "amountAllHit": true,
+      "directionAllHit": true
+    },
+    "payload": {
+      "drafts": [
+        {
+          "direction": "expense",
+          "amountCents": 1700,
+          "amountRaw": "17 块",
+          "categoryPath": "交通\u003e打车"
+        },
+        {
+          "direction": "transfer",
+          "amountCents": 20000,
+          "amountRaw": "200",
+          "merchant": "小李",
+          "categoryPath": "人情\u003e红包"
+        }
+      ]
+    }
+  },
+  {
+    "route": "B 两步（先单笔，多笔时补一次批量）",
+    "sample": "m08",
+    "kind": "陷阱·合并总额",
+    "text": "这个月买菜加打车一共花了 1000",
+    "model": "deepseek-chat",
+    "expectedCount": 1,
+    "reportedCount": 1,
+    "attempts": 2,
+    "firstPass": true,
+    "secondStep": true,
+    "secondStepFailed": false,
+    "millis": 1481,
+    "attemptRecords": [
+      {
+        "index": 1,
+        "kind": "OK",
+        "detail": ""
+      },
+      {
+        "index": 1,
+        "kind": "OK",
+        "detail": ""
+      }
+    ],
+    "entries": [
+      {
+        "amountCents": 100000,
+        "direction": "expense",
+        "occurredAtText": "这个月"
+      }
+    ],
+    "truth": [
+      {
+        "amountCents": 100000,
+        "direction": "expense"
+      }
+    ],
+    "hit": {
+      "countHit": true,
+      "overSplit": false,
+      "underSplit": false,
+      "firstAmountHit": true,
+      "firstDirectionHit": true,
+      "amountAllHit": true,
+      "directionAllHit": true
+    },
+    "payload": {
+      "drafts": [
+        {
+          "direction": "expense",
+          "amountCents": 100000,
+          "amountRaw": "1000",
+          "occurredAtText": "这个月",
+          "categoryPath": "餐饮\u003e买菜",
+          "note": "买菜加打车合计"
+        }
+      ]
+    }
+  }
+]

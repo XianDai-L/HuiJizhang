@@ -6,6 +6,7 @@ import androidx.room.PrimaryKey;
 
 import com.wisebook.app.domain.model.CategoryScheme;
 import com.wisebook.app.domain.model.ConfirmMode;
+import com.wisebook.app.domain.model.LedgerCategoryMode;
 
 /**
  * 用户设置（D1 §3.5）——表 {@code t_setting}。
@@ -39,6 +40,21 @@ public class SettingEntity {
     /** 分类方案，见 {@link CategoryScheme} */
     @ColumnInfo(name = "category_scheme")
     public CategoryScheme categoryScheme;
+
+    /**
+     * 账本列表里分类的显示粒度，见 {@link LedgerCategoryMode}（2026-10-08 新增）。
+     *
+     * <p><b>已废弃（2026-10-11）：</b>设置页上那一行在 2026-10-08 就从
+     * 「分类显示到几级」改成了「列出账本里的分类」，这个开关随之失去界面入口；
+     * 2026-10-11 那一行又被提升成独立的「账本」分组（进账本选择页），
+     * 于是它彻底没有使用者了。
+     *
+     * <p>列<b>刻意保留</b>：删列要配一版迁移，而它只是一个可空字符串、不占空间。
+     * 迁移是这个项目最容易出错的环节（HANDOFF §8-17），能不动就不动——
+     * 与 {@code merchant_map_version} 是同一种处理。
+     */
+    @ColumnInfo(name = "ledger_category_mode")
+    public LedgerCategoryMode ledgerCategoryMode;
 
     /**
      * 商户映射表版本。**已废弃**（2026-10-07，HANDOFF 决策 46）：映射表整体删除了，

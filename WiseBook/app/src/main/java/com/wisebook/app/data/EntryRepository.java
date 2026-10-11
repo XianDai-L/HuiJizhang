@@ -5,6 +5,7 @@ import androidx.lifecycle.LiveData;
 import com.wisebook.app.data.local.EvidenceStore;
 import com.wisebook.app.data.local.WiseBookDatabase;
 import com.wisebook.app.data.local.entity.DraftEntity;
+import com.wisebook.app.domain.draft.DedupeKey;
 import com.wisebook.app.data.local.entity.EntryEntity;
 import com.wisebook.app.domain.draft.DraftStateMachine;
 import com.wisebook.app.domain.draft.DraftTransition;
@@ -81,10 +82,13 @@ public final class EntryRepository {
 
     private final WiseBookDatabase database;
     private final EvidenceStore evidenceStore;
+    private final CurrentLedger currentLedger;
 
-    public EntryRepository(WiseBookDatabase database, EvidenceStore evidenceStore) {
+    public EntryRepository(WiseBookDatabase database, EvidenceStore evidenceStore,
+                           CurrentLedger currentLedger) {
         this.database = database;
         this.evidenceStore = evidenceStore;
+        this.currentLedger = currentLedger;
     }
 
     /**
@@ -150,6 +154,71 @@ public final class EntryRepository {
         return Boolean.TRUE.equals(database.runInTransaction(work));
     }
 
+    /**
+     * 改正一笔已入账记录的金额（2026-10-08 新增）。
+     *
+     * <p>与 {@link #correctCategory} 同一套路：<b>账目与草稿一起改</b>。只改一边，
+     * 库里会留下「账本说 45、草稿说 32」这种矛盾，而草稿是用户回看
+     * 「我当时说了什么、AI 理解成了什么」的唯一依据。
+     *
+     * <p>三个附带动作都不是可选的：
+     * <ul>
+     *   <li>{@code amountIsEstimated} 置 false——用户亲手填的数不再是「估算」，
+     *       列表行上那个小标必须跟着消失</li>
+     *   <li>约数区间一并清空——它描述的是「AI 拿不准的范围」，用户给定金额后
+     *       这个范围没有意义了，留着会让详情页显示一个与主金额对不上的区间</li>
+     *   <li>重算 {@code dedupe_key}——它的构成含金额（见 {@link DedupeKey}）。
+     *       这一点与改正分类相反：改分类不必重算，改金额必须重算，否则去重索引上
+     *       还挂着旧金额，下次同一笔按原金额提交时判不出重复</li>
+     * </ul>
+     *
+     * @param amountCents 新金额，单位「分」，必须为正
+     * @return 是否确实改了一笔
+     */
+    public boolean correctAmount(long entryId, long amountCents) {
+        if (amountCents <= 0L) {
+            return false;
+        }
+        Callable<Boolean> work = () -> {
+            EntryEntity entry = database.entryDao().findById(entryId);
+            if (entry == null) {
+                return false;
+            }
+            entry.amountCents = amountCents;
+            entry.amountIsEstimated = false;
+            entry.amountLowerCents = null;
+            entry.amountUpperCents = null;
+            entry.dedupeKey = DedupeKey.of(entry.direction, entry.amountCents,
+                    entry.occurredAt, entry.merchant);
+            database.entryDao().update(entry);
+
+            DraftEntity draft = database.draftDao().findById(entry.draftId);
+            if (draft != null) {
+                draft.amountCents = amountCents;
+                draft.amountIsEstimated = false;
+                draft.amountLowerCents = null;
+                draft.amountUpperCents = null;
+                draft.dedupeKey = dedupeKeyOf(draft);
+                draft.updatedAt = System.currentTimeMillis();
+                database.draftDao().update(draft);
+            }
+            return true;
+        };
+        return Boolean.TRUE.equals(database.runInTransaction(work));
+    }
+
+    /**
+     * 草稿的去重键。与 {@code DraftRepository} 里的同名方法是同一套规则：
+     * 方向 / 金额 / 发生时间有一个缺失就算不出键，此时返回 {@code null}
+     * （宁可不去重，也不能拿半个键去撞索引）。
+     */
+    private static String dedupeKeyOf(DraftEntity draft) {
+        if (draft.direction == null || draft.amountCents == null || draft.occurredAt == null) {
+            return null;
+        }
+        return DedupeKey.of(draft.direction, draft.amountCents, draft.occurredAt, draft.merchant);
+    }
+
     /** 单条账目；不存在时返回 {@code null}。<b>阻塞</b> */
     public EntryEntity findById(long entryId) {
         return database.entryDao().findById(entryId);
@@ -157,18 +226,33 @@ public final class EntryRepository {
 
     /** 某个月区间内的账目，按发生时间倒序；数据库驱动的观察（账本列表用） */
     public LiveData<List<EntryEntity>> observeBetween(long fromInclusive, long toExclusive) {
-        return database.entryDao().observeBetween(fromInclusive, toExclusive);
+        return database.entryDao().observeBetween(currentLedger.id(), fromInclusive, toExclusive);
+    }
+
+    /**
+     * 首页「最近账目」：最近 {@code limit} 笔，<b>跨月</b>，随库变化自动刷新。
+     *
+     * <p>与 {@link #observeBetween} 的区别就是不带月份区间（见 DAO 上的说明）。
+     */
+    public LiveData<List<EntryEntity>> observeRecent(int limit) {
+        return database.entryDao().observeRecent(currentLedger.id(), limit);
+    }
+
+    /** 导出用：<b>本账本</b>的全部账目。<b>阻塞方法</b>，调用方负责放到后台线程 */
+    public List<EntryEntity> findAll() {
+        return database.entryDao().findAll(currentLedger.id());
     }
 
     /** 同一批账目，按记账时间倒序；用于账本页的排序切换 */
     public LiveData<List<EntryEntity>> observeBetweenByCreatedAt(long fromInclusive,
                                                                 long toExclusive) {
-        return database.entryDao().observeBetweenByCreatedAt(fromInclusive, toExclusive);
+        return database.entryDao().observeBetweenByCreatedAt(currentLedger.id(),
+                fromInclusive, toExclusive);
     }
 
     /** 某个月区间内的账目明细。<b>阻塞</b> */
     public List<EntryEntity> findBetween(long fromInclusive, long toExclusive) {
-        return database.entryDao().findBetween(fromInclusive, toExclusive);
+        return database.entryDao().findBetween(currentLedger.id(), fromInclusive, toExclusive);
     }
 
     // ------------------------------------------------------------------ 内部

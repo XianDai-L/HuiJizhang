@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  尺寸令牌。两条约定：
+
+  1) 间距一律是 4 的倍数，从 space_* 里取，不要在布局里写裸数字。
+     裸数字是「同一页里 12dp 和 13dp 混用」的唯一来源。
+  2) 圆角只有三档：card(20) / ctl(14) / small(10)，胶囊用 999。
+
+  字号直接写成 sp 的语义名（text_*），改动时只改这一处。
+-->
+<resources>
+    <!-- ============ 间距 ============ -->
+    <dimen name="space_1">4dp</dimen>
+    <dimen name="space_2">8dp</dimen>
+    <dimen name="space_3">12dp</dimen>
+    <dimen name="space_4">16dp</dimen>
+    <dimen name="space_5">20dp</dimen>
+    <dimen name="space_6">24dp</dimen>
+    <dimen name="space_8">32dp</dimen>
+
+    <!-- 页面左右留白：所有页面的内容区都用它，保证跨页对齐 -->
+    <dimen name="page_padding_h">20dp</dimen>
+    <dimen name="page_padding_top">8dp</dimen>
+    <dimen name="page_padding_bottom">16dp</dimen>
+
+    <!-- ============ 圆角 ============ -->
+    <dimen name="radius_card">20dp</dimen>
+    <dimen name="radius_ctl">14dp</dimen>
+    <dimen name="radius_small">10dp</dimen>
+
+    <!-- ============ 触摸目标与控件尺寸 ============ -->
+    <!-- 48dp 是 Android 无障碍的硬底线，小于它手指点不准 -->
+    <dimen name="touch_target">48dp</dimen>
+    <dimen name="icon_button">38dp</dimen>
+    <dimen name="send_button">46dp</dimen>
+    <!-- 分类色块放两个字，所以比图标方块略宽一点 -->
+    <dimen name="cat_tile">40dp</dimen>
+    <dimen name="cat_tile_small">32dp</dimen>
+
+    <!-- ============ 字号阶梯 ============ -->
+    <dimen name="text_display">30sp</dimen>
+    <dimen name="text_amount_hero">27sp</dimen>
+    <dimen name="text_amount_detail">42sp</dimen>
+    <dimen name="text_amount_row">15sp</dimen>
+    <dimen name="text_title">17sp</dimen>
+    <dimen name="text_section">13.5sp</dimen>
+    <dimen name="text_body">14.5sp</dimen>
+    <dimen name="text_body_small">13.5sp</dimen>
+    <dimen name="text_caption">12sp</dimen>
+    <dimen name="text_micro">11.5sp</dimen>
+    <dimen name="text_tiny">10.5sp</dimen>
+
+    <!-- ============ 页面专属 ============ -->
+    <!-- 首页「最近账目」卡片的可视高度：约 4 条半，露出第 5 条暗示还能滚 -->
+    <dimen name="home_recent_height">252dp</dimen>
+    <!-- 概览条、输入栏等贴底元素的内部高度 -->
+    <dimen name="composer_min_height">46dp</dimen>
+</resources>

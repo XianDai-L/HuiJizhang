@@ -40,6 +40,8 @@ public class MigrationTest {
     /** 两个用例各用一个库名，避免 @Rule 之间互相干扰 */
     private static final String PARTIAL_DB = "migration-partial.db";
     private static final String FULL_DB = "migration-full.db";
+    /** v3 → v4（多账本）用一个独立的库 */
+    private static final String LEDGER_DB = "migration-ledger.db";
 
     @Rule
     public MigrationTestHelper helper = new MigrationTestHelper(
@@ -107,6 +109,34 @@ public class MigrationTest {
         db.close();
     }
 
+    /**
+     * v3 → v4：建账本表、把旧数据登记成第一个账本、给「人情」补「转账」子分类。
+     *
+     * <p>这一版<b>不给任何已有表加列</b>（账本维度复用 {@code user_id}），
+     * 所以重点验的是：新表建对（{@code runMigrationsAndValidate} 会逐列比对实体定义）、
+     * 旧数据一条不少、以及那句"给已有账本补分类"的 SELECT 确实插进去了。
+     */
+    @Test
+    public void migrate3To4_createsLedgerAndAddsTransferCategory() throws IOException {
+        SupportSQLiteDatabase db = helper.createDatabase(LEDGER_DB, 3);
+
+        long renqingId = insertCategoryV1(db, "人情", null, 1, 0);
+        insertEntryV3(db, 1L, 1200L);
+        db.close();
+
+        db = helper.runMigrationsAndValidate(LEDGER_DB, 4, true, Migrations.MIGRATION_3_4);
+
+        assertEquals("升级后应恰好有一个账本", 1, countOf(db, "t_ledger"));
+        assertEquals("默认账本的 id 就是旧数据的 user_id",
+                1, singleIntOf(db, "SELECT ledger_id FROM t_ledger"));
+        assertEquals("应在「人情」下补一个「转账」子分类", 1,
+                singleIntOf(db, "SELECT COUNT(*) FROM t_category WHERE parent_id = "
+                        + renqingId + " AND name = '转账' AND level = 2"));
+        assertEquals("v3 的账目必须一条不少", 1, countOf(db, "t_entry"));
+
+        db.close();
+    }
+
     // ------------------------------------------------------------------ 辅助
 
     private static long insertCategoryV1(SupportSQLiteDatabase db, String name, Long parentId,
@@ -124,6 +154,15 @@ public class MigrationTest {
                         + " (draft_id, user_id, amount_cents, amount_is_estimated,"
                         + " occurred_at, category_id, root_category_id, created_at)"
                         + " VALUES (?, 1, ?, 0, 1700000000000, 1, 1, 1700000000000)",
+                new Object[]{draftId, amountCents});
+    }
+
+    /** v3 的 t_entry 比 v1 多一列 auto_posted（NOT NULL，无默认值） */
+    private static void insertEntryV3(SupportSQLiteDatabase db, long draftId, long amountCents) {
+        db.execSQL("INSERT INTO t_entry"
+                        + " (draft_id, user_id, amount_cents, amount_is_estimated,"
+                        + " occurred_at, category_id, root_category_id, created_at, auto_posted)"
+                        + " VALUES (?, 1, ?, 0, 1700000000000, 1, 1, 1700000000000, 0)",
                 new Object[]{draftId, amountCents});
     }
 

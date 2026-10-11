@@ -9,6 +9,8 @@ import com.wisebook.app.data.local.entity.DraftEntity;
 import com.wisebook.app.domain.model.AmountRuleCheck;
 import com.wisebook.app.domain.model.ConfidenceFlag;
 import com.wisebook.app.domain.model.ConfirmMode;
+import com.wisebook.app.domain.model.DraftSource;
+import com.wisebook.app.domain.model.OccurredAtSource;
 
 import org.junit.Test;
 
@@ -167,5 +169,39 @@ public class ConfirmPolicyTest {
         assertTrue(verdict.reasonText().contains("分类"));
         assertTrue(verdict.reasonText().contains("必填字段缺失"));
         assertTrue(verdict.reasonText().contains("大额"));
+    }
+
+    // ------------------------------- 条件 9：截图入口没读到交易时间（2026-10-08）
+
+    @Test
+    public void imageDraftWithoutTimeConfirms() {
+        // 账单截图几乎必然带交易时间，读不出来说明这段版面确实没有可用时间，
+        // 此时 occurred_at 会落到「今天此刻」——那是猜的，得让用户核对
+        DraftEntity draft = TestFixtures.cleanDraft();
+        draft.source = DraftSource.IMAGE;
+        draft.occurredAtSource = OccurredAtSource.FALLBACK;
+
+        ConfirmPolicy.Verdict verdict = decide(draft, ConfirmMode.LARGE);
+        assertFalse(verdict.isDirect());
+        assertTrue(verdict.reasonText().contains("没读到交易时间"));
+    }
+
+    @Test
+    public void imageDraftWithInferredTimeIsNotBlockedByThisCondition() {
+        // 只抄到时刻（如「18:34」）算 INFERRED：日期那一半可能由日期下推补上，
+        // 这条闸门只管「完全没读到时间」，不该把它一并拦下
+        DraftEntity draft = TestFixtures.cleanDraft();
+        draft.source = DraftSource.IMAGE;
+        draft.occurredAtSource = OccurredAtSource.INFERRED;
+        assertTrue(decide(draft, ConfirmMode.LARGE).isDirect());
+    }
+
+    @Test
+    public void textDraftWithoutTimeStaysDirect() {
+        // 文字入口说「打车 30」本来就没提时间，一律要求确认会让档位失去区分度
+        // （HANDOFF 决策 20 的教训），所以这条闸门只挂截图入口
+        DraftEntity draft = TestFixtures.cleanDraft();
+        draft.occurredAtSource = OccurredAtSource.FALLBACK;
+        assertTrue(decide(draft, ConfirmMode.LARGE).isDirect());
     }
 }

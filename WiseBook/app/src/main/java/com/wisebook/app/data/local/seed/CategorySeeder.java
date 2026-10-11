@@ -51,7 +51,7 @@ public final class CategorySeeder {
             new Node("娱乐", "游戏", "影音", "旅行", "运动"),
             new Node("医疗", "门诊", "药品", "体检"),
             new Node("教育", "学费", "书籍", "培训"),
-            new Node("人情", "红包", "礼物", "请客"),
+            new Node("人情", "红包", "礼物", "请客", "转账"),
             new Node("其他")
     };
 
@@ -84,18 +84,18 @@ public final class CategorySeeder {
     }
 
     /**
-     * 表里一条分类都没有时才播种。
+     * 某个账本（= {@code userId}）里一条分类都没有时才播种。
      *
      * <p><b>必须在后台线程调用</b>，且整体包在一个事务里：
      * 五十多行的插入要么全成功要么全失败，否则会出现「播了一半」的分类树。
      *
-     * <p>判据用「表是否为空」而不是额外的标记位：空表就是没播过种，
+     * <p>判据用「该账本的分类是否为空」而不是额外的标记位：空就是没播过种，
      * 这个判据天然幂等，且应用被杀在播种中途时下次启动会重新补上。
+     * 多账本（2026-10-11）之后它按账本各播一套——新建账本时同样调它。
      */
-    public static void seedIfEmpty(WiseBookDatabase db) {
+    public static void seedIfEmpty(WiseBookDatabase db, long userId) {
         db.runInTransaction(() -> {
             CategoryDao dao = db.categoryDao();
-            long userId = WiseBookDatabase.DEFAULT_USER_ID;
             if (dao.count(userId) > 0) {
                 return;
             }

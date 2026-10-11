@@ -34,6 +34,7 @@ import java.util.regex.Pattern;
  *   <tr><th>类型</th><th>例子</th></tr>
  *   <tr><td>相对日</td><td>今天 / 昨天 / 前天 / 大前天 / 明天 / 后天 / 大后天 / 今晚 / 昨晚 / 今早</td></tr>
  *   <tr><td>周内</td><td>周三 / 星期三 / 礼拜天 / 这周五 / 上周一 / 上上周日 / 下周二</td></tr>
+ *   <tr><td>相对月</td><td>上个月 / 这个月 / 下个月（取那个月的同一天）</td></tr>
  *   <tr><td>月日</td><td>9月5号 / 九月五号</td></tr>
  *   <tr><td>时刻</td><td>下午3点 / 晚上8点半 / 3点20分 / 15:30</td></tr>
  *   <tr><td>时段</td><td>早上 / 上午 / 中午 / 下午 / 傍晚 / 晚上 / 夜里 / 半夜 / 凌晨</td></tr>
@@ -135,6 +136,14 @@ public final class RelativeTimeResolver {
             "([0-9]{1,2}|[零〇一二三四五六七八九十]{1,3})月"
                     + "([0-9]{1,2}|[零〇一二三四五六七八九十]{1,3})[号日]");
 
+    /**
+     * 上个月 / 这个月 / 下个月 / 上月 / 本月 —— 给了月份但没给具体哪天。
+     *
+     * <p>要求前缀词（上/这/本/下）再跟「个?月」，所以「9月5号」不会被它抢走。
+     */
+    private static final Pattern RELATIVE_MONTH =
+            Pattern.compile("(上上|上|这|本|下下|下)个?月");
+
     /** 15:30 */
     private static final Pattern CLOCK_COLON =
             Pattern.compile("([0-9]{1,2})[:：]([0-9]{1,2})");
@@ -183,17 +192,11 @@ public final class RelativeTimeResolver {
             }
         }
 
-        // ---------------- 2) 周内
-        if (date == null) {
-            Matcher weekMatcher = WEEKDAY.matcher(text);
-            if (weekMatcher.find()) {
-                date = weekdayDate(reference.toLocalDate(),
-                        weekMatcher.group(1), weekMatcher.group(2));
-                hits.add(weekMatcher.group());
-            }
-        }
-
-        // ---------------- 3) 月日
+        // ---------------- 2) 月日
+        // 它排在「周内」之前，是因为账单截图的分组标题常写成「10月1日 星期四」，
+        // 而 WEEKDAY 的前缀（这/本/上/下）本来就是可选的——「星期四」会被它当成
+        // 「本周四」抢走，真正明确的月日再没机会命中，整批账目的日期会偏掉一周。
+        // 反过来不会误伤：「上周三」里没有月日，MONTH_DAY 匹配不到，照旧走周内。
         if (date == null) {
             Matcher monthDayMatcher = MONTH_DAY.matcher(text);
             if (monthDayMatcher.find()) {
@@ -203,6 +206,30 @@ public final class RelativeTimeResolver {
                     date = candidate;
                     hits.add(monthDayMatcher.group());
                 }
+            }
+        }
+
+        // ---------------- 3) 周内
+        if (date == null) {
+            Matcher weekMatcher = WEEKDAY.matcher(text);
+            if (weekMatcher.find()) {
+                date = weekdayDate(reference.toLocalDate(),
+                        weekMatcher.group(1), weekMatcher.group(2));
+                hits.add(weekMatcher.group());
+            }
+        }
+
+        // ---------------- 相对月（上个月 / 这个月 / 下个月）
+        // 「上个月花了 50」这类说法只给了月份、没给哪天，取那个月的同一天最不容易错：
+        // 用户说「上个月」时，心里想的通常是"和今天差不多的那几天"。
+        // plusMonths 会自动处理越界（3 月 31 日往回一个月落到 2 月末），不用自己兜。
+        // 2026-10-07 补：这一段原先没有，于是「上个月花了 50 块」会落到 fallback、
+        // 按当前时间入账——用户会看到账目跑到了本月。
+        if (date == null) {
+            Matcher monthMatcher = RELATIVE_MONTH.matcher(text);
+            if (monthMatcher.find()) {
+                date = reference.toLocalDate().plusMonths(monthOffset(monthMatcher.group(1)));
+                hits.add(monthMatcher.group());
             }
         }
 
@@ -321,6 +348,24 @@ public final class RelativeTimeResolver {
                 return 1;
             case "后":
                 return big ? 3 : 2;
+            default:
+                return 0;
+        }
+    }
+
+    /** 「上上 / 上 / 这 / 下 / 下下」个月各偏移多少个月 */
+    private static long monthOffset(String prefix) {
+        switch (prefix) {
+            case "上上":
+                return -2;
+            case "上":
+                return -1;
+            case "下下":
+                return 2;
+            case "下":
+                return 1;
+            case "这":
+            case "本":
             default:
                 return 0;
         }

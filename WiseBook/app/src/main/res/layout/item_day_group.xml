@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  账本里「一天」的整体：上面是日期与小计，下面是当天账目——装在一张带边的卡片里。
+
+  为什么一天一个 item 而不是「分组头一个 item + 账目各一个 item」：
+  后者的边界只能靠"给第一条加圆角上边、最后一条加圆角下边"拼出来，
+  数据一变动就要重算谁在头、谁在尾。一天一个 item 之后，
+  卡片边框天然把这一天圈住，边界清晰，也不用管首尾。
+
+  代价是这一天的账目不走 RecyclerView 的复用（在 LinearLayout 里 addView）。
+  一天的账目最多十来笔，这点开销换来的是布局上的确定性。
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingTop="@dimen/space_4">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="@dimen/space_1"
+        android:paddingEnd="@dimen/space_1"
+        android:paddingBottom="@dimen/space_2">
+
+        <TextView
+            android:id="@+id/day_label"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textColor="@color/ink_2"
+            android:textSize="@dimen/text_caption"
+            android:textStyle="bold"
+            tools:text="10 月 7 日 · 周三" />
+
+        <TextView
+            android:id="@+id/day_total"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFeatureSettings="tnum"
+            android:textColor="@color/ink_2"
+            android:textSize="@dimen/text_caption"
+            android:textStyle="bold"
+            tools:text="−128.00" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/day_entries"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/bg_card"
+        android:clipToOutline="true"
+        android:orientation="vertical" />
+
+</LinearLayout>

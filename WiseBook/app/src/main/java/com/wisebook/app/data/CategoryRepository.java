@@ -16,24 +16,26 @@ import com.wisebook.app.domain.classify.CategoryTree;
 public final class CategoryRepository {
 
     private final WiseBookDatabase database;
+    private final CurrentLedger currentLedger;
 
-    public CategoryRepository(WiseBookDatabase database) {
+    public CategoryRepository(WiseBookDatabase database, CurrentLedger currentLedger) {
         this.database = database;
+        this.currentLedger = currentLedger;
     }
 
-    /** 取当前用户的未停用分类，组装成树 */
+    /** 取某个账本的未停用分类，组装成树 */
     public CategoryTree loadTree(long userId) {
         return new CategoryTree(database.categoryDao().findActive(userId));
     }
 
     /**
-     * 确保预置分类已写入。
+     * 确保<b>当前账本</b>的预置分类已写入。
      *
      * <p>正常情况下 {@code WiseBookApp} 启动时已经播过种，这里只是给
      * 「数据库被清过但进程还活着」这类边角情况兜个底——毕竟没有分类树，
      * 模型的分类枚举就是空的，整条解析链路会退化。
      */
     public void ensureSeeded() {
-        CategorySeeder.seedIfEmpty(database);
+        CategorySeeder.seedIfEmpty(database, currentLedger.id());
     }
 }

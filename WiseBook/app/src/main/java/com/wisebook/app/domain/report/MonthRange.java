@@ -44,6 +44,19 @@ public final class MonthRange {
         return of(today.getYear(), today.getMonthValue(), zone);
     }
 
+    /**
+     * 「全部账目」用的范围：把两端放到极限。
+     *
+     * <p>用它而不是再写一条"不带 WHERE 的查询"：总计与本月本来就只差一个时间条件，
+     * 用同一个查询、只换范围，两条路径的口径不会走偏。
+     *
+     * <p>year / month 给 0：这个范围没有对应的年月，{@link #label()} 不该被调用
+     * （界面上显示的是「全部账目」）。
+     */
+    public static MonthRange all() {
+        return new MonthRange(0, 0, 0L, Long.MAX_VALUE);
+    }
+
     /** 某个时刻是否落在这个月里 */
     public boolean contains(long millis) {
         return millis >= fromInclusive && millis < toExclusive;

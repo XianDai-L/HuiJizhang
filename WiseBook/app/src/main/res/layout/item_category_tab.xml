@@ -1,14 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 分类选择器里的「一级分类」标签。用 TextView 而不是 Button：Button 自带内边距与最小宽度，会把圆角标签撑变形 -->
+<!--
+  分类选择器里的「一级分类」标签。
+  用 TextView 而不是 Button：Button 自带内边距与最小宽度，会把圆角标签撑变形。
+
+  高度给到 36dp：这是弹窗里唯一需要横向点的东西，太扁了不好按
+  （48dp 会让这一行过于笨重，36dp 是这两者之间的折中）。
+-->
 <TextView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
-    android:layout_marginEnd="8dp"
+    android:layout_marginEnd="@dimen/space_2"
     android:background="@drawable/bg_category_tab"
-    android:paddingStart="14dp"
-    android:paddingTop="7dp"
-    android:paddingEnd="14dp"
-    android:paddingBottom="7dp"
-    android:textSize="14sp"
+    android:gravity="center"
+    android:minHeight="36dp"
+    android:paddingStart="16dp"
+    android:paddingTop="8dp"
+    android:paddingEnd="16dp"
+    android:paddingBottom="8dp"
+    android:textSize="@dimen/text_body_small"
     tools:text="餐饮" />

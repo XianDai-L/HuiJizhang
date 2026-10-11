@@ -6,6 +6,7 @@ import android.view.View;
 import android.widget.TextView;
 
 import androidx.activity.EdgeToEdge;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -13,9 +14,11 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.wisebook.app.R;
 import com.wisebook.app.WiseBookApp;
-import com.wisebook.app.data.local.WiseBookDatabase;
+import com.wisebook.app.data.local.entity.DraftEntity;
 import com.wisebook.app.ui.EdgeToEdgeInsets;
 import com.wisebook.app.ui.confirm.ConfirmActivity;
+
+import java.util.List;
 
 /**
  * 待处理草稿列表：确认页的入口。
@@ -42,8 +45,11 @@ public class PendingDraftsActivity extends AppCompatActivity {
                 app.draftRepository(),
                 app.categoryRepository(),
                 app.databaseExecutor(),
-                WiseBookDatabase.DEFAULT_USER_ID))
+                app.currentLedgerId()))
                 .get(PendingDraftsViewModel.class);
+
+        findViewById(R.id.btn_back).setOnClickListener(view -> finish());
+        findViewById(R.id.btn_clear).setOnClickListener(view -> confirmClearAll());
 
         empty = findViewById(R.id.empty);
         adapter = new DraftAdapter(draft -> startActivity(
@@ -66,5 +72,25 @@ public class PendingDraftsActivity extends AppCompatActivity {
         viewModel.tree().observe(this, adapter::setTree);
 
         viewModel.loadTree();
+    }
+
+    /**
+     * 清空是不可逆的批量动作，问一句再动手。
+     *
+     * <p>把笔数写进确认文案：用户点下去之前该知道代价是几笔，
+     * 而不是笼统的「全部」。
+     */
+    private void confirmClearAll() {
+        List<DraftEntity> drafts = adapter.getCurrentList();
+        if (drafts.isEmpty()) {
+            return;
+        }
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.pending_clear)
+                .setMessage(getString(R.string.pending_clear_confirm, drafts.size()))
+                .setNegativeButton(R.string.action_cancel, null)
+                .setPositiveButton(R.string.pending_clear,
+                        (dialog, which) -> viewModel.clearAll(drafts))
+                .show();
     }
 }

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  色块底：初始是白色，代码里用 setBackgroundTintList 上色。
+  分类图标、入口图标都用它 —— 一个文件覆盖所有颜色，
+  不必为每种分类各建一个 drawable。
+
+  注意：tint 只替换 solid，圆角与形状保留，所以圆角仍然统一。
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="@color/white" />
+    <corners android:radius="@dimen/radius_small" />
+</shape>

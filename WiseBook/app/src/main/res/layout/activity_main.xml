@@ -1,172 +1,507 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  首页。P1 的主入口，也是唯一的输入入口。
+  首页 = 记账工作台。
 
-  形态上分两截：上面是可滚动的内容区（待处理、账本、报表、设置），
-  下面是<b>贴在屏幕底部</b>的输入栏。输入栏贴底而不是跟着内容往下排，有两个原因：
-  一是键盘弹起时它会被顶上来，视线不用挪；二是上面那截可以随便加内容，输入栏的位置不变。
+  版面自上而下四段，顺序是「先给去哪，再给刚发生了什么」：
+      标题行 → 本月概览条 → 三个图标入口 → 最近账目（卡片内可滚）
+  底部是固定在屏幕下沿的输入栏。它贴底而不是跟着内容排，有两个原因：
+  一是键盘弹起时会被顶上来，视线不用挪；二是上面那截可以随便加内容，它的位置不变。
 
-  刻意不放「解析」「清空」两个按钮：上箭头就是发送，而发送即清空输入框
-  （见 HANDOFF 决策 34），清空按钮因此没有存在意义。
+  最近账目用 layout_weight 吃掉剩余高度，内部 RecyclerView 自己滚：
+  小屏上它自动变矮、大屏上自动变高，输入栏始终留在底部；
+  也因此不会出现「外层 ScrollView 套 RecyclerView」的嵌套滚动冲突。
+
+  刻意不放「解析」「清空」两个按钮：上箭头就是发送，而发送即清空输入框。
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/page_bg"
     android:orientation="vertical"
-    android:paddingHorizontal="20dp"
-    android:paddingTop="20dp"
-    android:paddingBottom="8dp"
-    tools:context=".ui.ledger.MainActivity">
+    android:paddingStart="@dimen/page_padding_h"
+    android:paddingTop="@dimen/page_padding_top"
+    android:paddingEnd="@dimen/page_padding_h"
+    android:paddingBottom="@dimen/page_padding_bottom">
 
-    <!-- 上面这截要能撑满剩余空间，所以 weight=1 + height=0dp；
-         否则内容少的时候输入栏会被顶到屏幕中间 -->
-    <ScrollView
+    <!--
+      上方内容整块放进 NestedScrollView（weight=1 吃掉剩余高度），输入栏留在它外面。
+      这是为了键盘：键盘弹起时根部 padding 变大，这个容器被压缩、内容在里面滚，
+      输入栏则始终贴着键盘上沿。
+
+      之前是「spacer 占位 + 内容固定高度」的排法，键盘一弹输入栏就被挤出屏幕——
+      它没有任何可让的余地（2026-10-07 真机反馈）。
+
+      NestedScrollView 而不是 ScrollView：里面那张「最近账目」卡片本身就是个可滚的
+      RecyclerView，普通 ScrollView 不参与嵌套滚动，内层滑到底之后手势就断了。
+    -->
+    <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:fillViewport="true">
+        android:fillViewport="true"
+        android:scrollbars="none">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
+            <!-- ==================== 1. 标题行 ==================== -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
             <TextView
+                style="@style/Text.Display"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:text="@string/home_title"
-                android:textSize="32sp"
-                android:textStyle="bold" />
+                android:text="@string/home_title" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
+                android:layout_marginTop="@dimen/space_1"
                 android:text="@string/home_subtitle"
-                android:textSize="15sp" />
+                android:textColor="@color/ink_2"
+                android:textSize="@dimen/text_body_small" />
 
+            <!--
+              当前账本（2026-10-11 多账本）：
+              「记账只记当前账本」，所以"现在在哪个账本"要一直在眼前，
+              点它直接去账本选择页。放在副标题下面而不是塞进概览条——
+              概览条是数字，这一行是"这些数字属于谁"。
+            -->
             <TextView
-                android:id="@+id/open_draft_count"
-                android:layout_width="match_parent"
+                android:id="@+id/ledger_badge"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="28dp"
-                android:background="?android:attr/selectableItemBackground"
-                android:padding="12dp"
-                android:textSize="15sp"
-                tools:text="待处理草稿：3 笔（点这里处理）" />
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:orientation="horizontal">
-
-                <Button
-                    android:id="@+id/btn_ledger"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="@string/home_action_ledger"
-                    android:textSize="17sp" />
-
-                <Button
-                    android:id="@+id/btn_report"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="12dp"
-                    android:layout_weight="1"
-                    android:text="@string/home_action_report"
-                    android:textSize="17sp" />
-            </LinearLayout>
-
-            <Button
-                android:id="@+id/btn_settings"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:text="@string/home_action_settings"
-                android:textSize="17sp" />
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="32dp"
-                android:text="@string/home_examples"
-                android:textSize="13sp" />
-
+                android:layout_marginTop="@dimen/space_2"
+                android:background="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:drawableEnd="@drawable/ic_chevron_right"
+                android:drawablePadding="2dp"
+                android:drawableTint="@color/brand"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:paddingTop="2dp"
+                android:paddingEnd="@dimen/space_1"
+                android:paddingBottom="2dp"
+                android:textColor="@color/brand"
+                android:textSize="@dimen/text_micro"
+                tools:text="当前账本：默认账本" />
         </LinearLayout>
-    </ScrollView>
 
+        <ImageButton
+            android:id="@+id/btn_settings"
+            android:layout_width="@dimen/icon_button"
+            android:layout_height="@dimen/icon_button"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/home_action_settings"
+            android:scaleType="centerInside"
+            android:src="@drawable/ic_settings"
+            android:tint="@color/ink" />
+    </LinearLayout>
+
+    <!-- ==================== 2. 本月概览条 ==================== -->
     <!--
-      解析结果一行。点它进「账目详情页」看底牌（模型给了什么、分类是怎么定的、
-      原始返回长什么样）——这一页已经存在，所以首页不再挂「AI 处理详情」面板。
-      没有地方可去时（解析失败）就不可点。
-
-      maxLines + ellipsize 是实机反馈加的：这一段在 ScrollView 之外、又被 weight 抢空间的
-      上方内容夹着，文本一多就把它压到几乎看不见——观感上"账本/报表/设置被顶没了"。
-      限成 3 行（结论 + 一句说明 + 提示）后，上方内容始终留得住；被截掉的细节点进去看。
-    -->
-    <TextView
-        android:id="@+id/parse_result"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:background="?android:attr/selectableItemBackground"
-        android:ellipsize="end"
-        android:lineSpacingExtra="3dp"
-        android:maxLines="3"
-        android:padding="12dp"
-        android:textSize="15sp"
-        android:visibility="gone"
-        tools:text="已自动记账" />
-
-    <TextView
-        android:id="@+id/parsing_hint"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:paddingHorizontal="12dp"
-        android:text="@string/home_parsing"
-        android:textSize="13sp"
-        android:visibility="gone" />
-
-    <!--
-      输入栏：[相机] [输入框] [发送]。相机在左是因为它是"另一种输入来源"，
-      与输入框是一类；发送在右是因为它决定"这一句怎么发出去"。
-
-      语音输入已整体移除（P3 再做，HANDOFF 决策 49）：真机上系统识别服务不可用，
-      留着就是个坏入口；而且一个不录音的记账应用不该申请麦克风权限。
+      全屏唯一一块深色，用来承担最重的信息。左右分栏而不是上下堆叠：
+      高度减半，但「本月花了多少」仍然是这一屏字号最大的数字。
     -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
+        android:layout_marginTop="@dimen/space_4"
+        android:background="@drawable/bg_hero"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="17dp"
+        android:paddingTop="@dimen/space_3"
+        android:paddingEnd="17dp"
+        android:paddingBottom="@dimen/space_3">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:letterSpacing="0.09"
+                android:text="@string/home_hero_expense"
+                android:textColor="@color/hero_label"
+                android:textSize="@dimen/text_micro"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/hero_expense"
+                style="@style/Text.Amount.Hero"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/space_1"
+                tools:text="¥3,248.50" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="118dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/space_3"
+            android:orientation="vertical"
+            android:paddingStart="14dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/home_hero_income"
+                    android:textColor="@color/hero_label"
+                    android:textSize="@dimen/text_micro" />
+
+                <TextView
+                    android:id="@+id/hero_income"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:fontFeatureSettings="tnum"
+                    android:gravity="end"
+                    android:textColor="@color/hero_up"
+                    android:textSize="@dimen/text_caption"
+                    android:textStyle="bold"
+                    tools:text="+8,200.00" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/home_hero_balance"
+                    android:textColor="@color/hero_label"
+                    android:textSize="@dimen/text_micro" />
+
+                <TextView
+                    android:id="@+id/hero_balance"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:fontFeatureSettings="tnum"
+                    android:gravity="end"
+                    android:textColor="@color/white"
+                    android:textSize="@dimen/text_caption"
+                    android:textStyle="bold"
+                    tools:text="4,951.50" />
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- ==================== 3. 三个图标入口 ==================== -->
+    <!--
+      三个入口共用一个 bg_card，靠背景色区分：账本用品牌紫、报表用收入绿、待处理用暖橙。
+      这些颜色只出现在小图标底色上，不参与页面强调 —— 强调色仍然只有品牌紫一个。
+    -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/space_3"
+        android:baselineAligned="false"
+        android:orientation="horizontal">
+
+        <LinearLayout
+            android:id="@+id/btn_ledger"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:background="@drawable/bg_card"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?attr/selectableItemBackground"
+            android:gravity="center_horizontal"
+            android:orientation="vertical"
+            android:paddingTop="15dp"
+            android:paddingBottom="13dp">
+
+            <ImageView
+                android:layout_width="38dp"
+                android:layout_height="38dp"
+                android:background="@drawable/bg_tile"
+                android:backgroundTint="@color/brand_soft"
+                android:contentDescription="@string/home_action_ledger"
+                android:padding="9dp"
+                android:src="@drawable/ic_ledger"
+                android:tint="@color/brand_ink" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/space_2"
+                android:text="@string/home_action_ledger"
+                android:textColor="@color/ink"
+                android:textSize="@dimen/text_caption" />
+
+            <TextView
+                android:id="@+id/qbtn_ledger_count"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:fontFeatureSettings="tnum"
+                android:textColor="@color/ink_3"
+                android:textSize="@dimen/text_tiny"
+                tools:text="本月 12 笔" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/btn_report"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/space_3"
+            android:layout_weight="1"
+            android:background="@drawable/bg_card"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?attr/selectableItemBackground"
+            android:gravity="center_horizontal"
+            android:orientation="vertical"
+            android:paddingTop="15dp"
+            android:paddingBottom="13dp">
+
+            <ImageView
+                android:layout_width="38dp"
+                android:layout_height="38dp"
+                android:background="@drawable/bg_tile"
+                android:backgroundTint="@color/income_soft"
+                android:contentDescription="@string/home_action_report"
+                android:padding="9dp"
+                android:src="@drawable/ic_report"
+                android:tint="@color/income" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/space_2"
+                android:text="@string/home_action_report"
+                android:textColor="@color/ink"
+                android:textSize="@dimen/text_caption" />
+
+            <TextView
+                android:id="@+id/qbtn_report_count"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:fontFeatureSettings="tnum"
+                android:textColor="@color/ink_3"
+                android:textSize="@dimen/text_tiny"
+                tools:text="分类 5 项" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/btn_pending"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/space_3"
+            android:layout_weight="1"
+            android:background="@drawable/bg_card"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?attr/selectableItemBackground"
+            android:gravity="center_horizontal"
+            android:orientation="vertical"
+            android:paddingTop="15dp"
+            android:paddingBottom="13dp">
+
+            <ImageView
+                android:layout_width="38dp"
+                android:layout_height="38dp"
+                android:background="@drawable/bg_tile"
+                android:backgroundTint="@color/cat_food_bg"
+                android:contentDescription="@string/home_action_pending"
+                android:padding="9dp"
+                android:src="@drawable/ic_pending"
+                android:tint="@color/cat_food" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/space_2"
+                android:text="@string/home_action_pending"
+                android:textColor="@color/ink"
+                android:textSize="@dimen/text_caption" />
+
+            <TextView
+                android:id="@+id/qbtn_pending_count"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:fontFeatureSettings="tnum"
+                android:textColor="@color/ink_3"
+                android:textSize="@dimen/text_tiny"
+                tools:text="3 笔" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- ==================== 4. 最近账目 ==================== -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/space_5"
+        android:layout_marginBottom="@dimen/space_2"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            style="@style/Text.Section"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/home_recent_title" />
+
+        <!-- 卡片里只给最近几笔，完整账本从这里进 -->
+        <TextView
+            android:id="@+id/btn_ledger_all"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="?attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true"
+            android:paddingStart="@dimen/space_2"
+            android:paddingTop="@dimen/space_1"
+            android:paddingEnd="0dp"
+            android:paddingBottom="@dimen/space_1"
+            android:textColor="@color/brand"
+            android:textSize="@dimen/text_caption"
+            android:textStyle="bold"
+            tools:text="全部 12 笔 →" />
+    </LinearLayout>
+
+    <!--
+      卡片高度交给 layout_weight，内部 RecyclerView 单独滚动。
+      clipToOutline 让滚动中的行被卡片的圆角裁掉，否则第一行会盖住圆角。
+    -->
+    <!--
+      卡片高度随内容长，但有上限（MaxHeightRecyclerView）：
+      只有两三笔时不留一大块空白，账目多时到此为止、内部滚。
+    -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/bg_card"
+        android:clipToOutline="true"
+        android:orientation="vertical">
+
+        <com.wisebook.app.ui.widget.MaxHeightRecyclerView
+            android:id="@+id/recent_list"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:clipToPadding="false"
+            android:overScrollMode="never"
+            android:scrollbars="vertical"
+            tools:listitem="@layout/item_entry" />
+
+        <TextView
+            android:id="@+id/recent_empty"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:paddingTop="@dimen/space_8"
+            android:paddingBottom="@dimen/space_8"
+            android:text="@string/home_recent_empty"
+            android:textColor="@color/ink_3"
+            android:textSize="@dimen/text_body_small"
+            android:visibility="gone" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@color/surface_sunken"
+            android:orientation="horizontal"
+            android:paddingStart="@dimen/space_4"
+            android:paddingTop="11dp"
+            android:paddingEnd="@dimen/space_4"
+            android:paddingBottom="11dp">
+
+            <TextView
+                android:id="@+id/recent_count"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:textColor="@color/ink_2"
+                android:textSize="@dimen/text_micro"
+                tools:text="共 12 笔" />
+
+            <TextView
+                android:id="@+id/recent_total"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFeatureSettings="tnum"
+                android:textColor="@color/ink"
+                android:textSize="@dimen/text_caption"
+                android:textStyle="bold"
+                tools:text="支出 ¥3,248.50" />
+        </LinearLayout>
+    </LinearLayout>
+
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+
+    <!-- 处理完成的浮动提示：贴着输入栏上沿出现，3 秒后自己收起 -->
+    <include layout="@layout/view_parse_toast" />
+
+    <!-- ==================== 5. 输入栏 ==================== -->
+    <!-- 解析中才出现的一行小字。成功/失败的结果走上面那个浮层 -->
+    <TextView
+        android:id="@+id/parsing_hint"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/space_2"
+        android:gravity="center"
+        android:text="@string/home_parsing"
+        android:textColor="@color/ink_3"
+        android:textSize="@dimen/text_micro"
+        android:visibility="gone"
+        tools:visibility="visible" />
+
+    <LinearLayout
+        android:id="@+id/composer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/space_2"
         android:gravity="center_vertical"
         android:orientation="horizontal">
 
         <!--
-          截图入口。放在输入框左侧而不是塞进右侧那串按钮里：
-          右侧是「发送/语音」，都是"这一句怎么发出去"；而相机是另一种输入来源，
-          和输入框是一类的（D2 §7 拟的「输入栏左侧加个相机图标」）。
-          选图走系统照片选择器，因此这里不需要声明任何权限。
+          截图入口放在输入框左侧而不是塞进右侧那串按钮里：
+          右侧是「发送」，是"这一句怎么发出去"；而相机是另一种输入来源，
+          和输入框是一类的。选图走系统照片选择器，所以不需要声明任何权限。
         -->
         <ImageButton
             android:id="@+id/btn_pick_image"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:layout_marginEnd="4dp"
-            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:layout_width="@dimen/touch_target"
+            android:layout_height="@dimen/touch_target"
+            android:layout_marginEnd="@dimen/space_1"
+            android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/home_pick_image"
-            android:scaleType="center"
-            android:src="@drawable/ic_camera" />
+            android:scaleType="centerInside"
+            android:src="@drawable/ic_camera"
+            android:tint="@color/ink_2" />
 
-        <!--
-          起步一行、最多三行（实机反馈定的，原来是 5 行）。超过三行就在框内上下滚动，
-          不做省略号——ellipsize 会把正在编辑的文字藏起来，用户没法核对。
-        -->
         <EditText
             android:id="@+id/input"
             android:layout_width="0dp"
@@ -177,22 +512,27 @@
             android:imeOptions="actionSend"
             android:importantForAutofill="no"
             android:inputType="textCapSentences|textMultiLine"
-            android:maxLines="3"
-            android:minHeight="46dp"
-            android:paddingHorizontal="16dp"
-            android:paddingVertical="12dp"
-            android:textSize="16sp" />
+            android:maxLines="5"
+            android:minHeight="@dimen/composer_min_height"
+            android:paddingStart="18dp"
+            android:paddingTop="@dimen/space_3"
+            android:paddingEnd="18dp"
+            android:paddingBottom="@dimen/space_3"
+            android:textColor="@color/ink"
+            android:textColorHint="@color/ink_3"
+            android:textSize="@dimen/text_amount_row" />
 
         <ImageButton
             android:id="@+id/btn_send"
-            android:layout_width="44dp"
-            android:layout_height="44dp"
-            android:layout_marginStart="4dp"
+            android:layout_width="@dimen/send_button"
+            android:layout_height="@dimen/send_button"
+            android:layout_marginStart="@dimen/space_2"
             android:background="@drawable/bg_send_button"
             android:contentDescription="@string/home_send"
-            android:padding="10dp"
-            android:src="@drawable/ic_arrow_up" />
-
+            android:padding="11dp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/ic_arrow_up"
+            android:tint="@color/white" />
     </LinearLayout>
 
 </LinearLayout>

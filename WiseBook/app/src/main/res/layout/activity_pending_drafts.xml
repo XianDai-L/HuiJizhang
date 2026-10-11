@@ -3,45 +3,101 @@
   待处理草稿列表：确认页的入口。
   草稿列表本身就是「草稿必须落库」这条设计的直接证据——
   它跨进程、跨页面都存在，靠的是数据库里的行，不是内存里的对象。
+
+  2026-10-07 补了两样：顶栏（原来这一页没有返回入口，只能靠系统返回键）与
+  右上角的「清空」。清空放在右上角而不是底部：它是批量、不可逆的动作，
+  放在拇指自然落点（底部）容易被误触。
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/pending_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/page_bg"
     android:orientation="vertical"
-    android:padding="16dp"
     tools:context=".ui.pending.PendingDraftsActivity">
 
-    <TextView
-        android:layout_width="wrap_content"
+    <!-- ==================== 顶栏 ==================== -->
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/pending_title"
-        android:textSize="22sp"
-        android:textStyle="bold" />
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="@dimen/space_3"
+        android:paddingTop="@dimen/space_2"
+        android:paddingEnd="@dimen/space_3">
+
+        <ImageButton
+            android:id="@+id/btn_back"
+            android:layout_width="@dimen/icon_button"
+            android:layout_height="@dimen/icon_button"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/action_back"
+            android:scaleType="centerInside"
+            android:src="@drawable/ic_back"
+            android:tint="@color/ink" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="@string/pending_title"
+            android:textColor="@color/ink"
+            android:textSize="@dimen/text_title"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/btn_clear"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="?attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true"
+            android:minWidth="@dimen/icon_button"
+            android:paddingStart="@dimen/space_2"
+            android:paddingTop="@dimen/space_1"
+            android:paddingEnd="0dp"
+            android:paddingBottom="@dimen/space_1"
+            android:text="@string/pending_clear"
+            android:textColor="@color/ink_2"
+            android:textSize="@dimen/text_body_small" />
+    </LinearLayout>
 
     <TextView
         android:id="@+id/empty"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="24dp"
+        android:layout_marginTop="@dimen/space_8"
+        android:gravity="center"
+        android:paddingStart="@dimen/page_padding_h"
+        android:paddingEnd="@dimen/page_padding_h"
         android:text="@string/pending_empty"
-        android:textSize="15sp"
+        android:textColor="@color/ink_3"
+        android:textSize="@dimen/text_body"
         android:visibility="gone" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/list"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_marginTop="12dp"
+        android:layout_marginTop="@dimen/space_2"
         android:layout_weight="1"
+        android:clipToPadding="false"
+        android:paddingStart="@dimen/page_padding_h"
+        android:paddingEnd="@dimen/page_padding_h"
+        android:paddingBottom="@dimen/space_4"
         tools:listitem="@layout/item_draft" />
 
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:paddingStart="@dimen/page_padding_h"
+        android:paddingTop="@dimen/space_1"
+        android:paddingEnd="@dimen/page_padding_h"
+        android:paddingBottom="@dimen/page_padding_bottom"
         android:text="@string/pending_hint"
-        android:textSize="12sp" />
+        android:textColor="@color/ink_3"
+        android:textSize="@dimen/text_micro" />
 
 </LinearLayout>

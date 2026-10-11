@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  处理完成的浮动提示（按 2026-10-07 的 HTML 原型重做）。
+
+  为什么不直接用 Snackbar：它的动画是"整条从屏幕底部滑上来"，
+  位移大、落点低，而且和输入栏叠在一起；这条例行提示要传达的是
+  「刚才那句话**已经记好了**」，动静应该小、出现位置应该贴着输入栏上沿。
+
+  结构：深色圆角卡片 = 图标 + 一行文字 + 可选的动作 + 底部一条走完即消失的进度条。
+  进度条不是装饰：它是这条提示的剩余寿命，用户看得见"还有多久"，
+  就不会在它消失时觉得"怎么突然没了"。
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/parse_toast"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="@dimen/space_2"
+    android:background="@drawable/bg_toast"
+    android:orientation="vertical"
+    android:visibility="gone"
+    tools:visibility="visible">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="15dp"
+        android:paddingTop="13dp"
+        android:paddingEnd="15dp"
+        android:paddingBottom="13dp">
+
+        <ImageView
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:background="@drawable/bg_toast_icon"
+            android:contentDescription="@null"
+            android:padding="4dp"
+            android:src="@drawable/ic_check"
+            android:tint="@color/toast_up" />
+
+        <TextView
+            android:id="@+id/parse_toast_text"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:layout_weight="1"
+            android:ellipsize="end"
+            android:maxLines="2"
+            android:textColor="@color/toast_text"
+            android:textSize="@dimen/text_body_small"
+            tools:text="已自动记账 · 星巴克 餐饮 › 咖啡 · ¥32.00" />
+
+        <TextView
+            android:id="@+id/parse_toast_action"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/space_2"
+            android:background="?attr/selectableItemBackground"
+            android:paddingTop="@dimen/space_1"
+            android:paddingBottom="@dimen/space_1"
+            android:text="@string/home_result_open"
+            android:textColor="@color/toast_action"
+            android:textSize="@dimen/text_caption"
+            android:textStyle="bold"
+            android:visibility="gone"
+            tools:visibility="visible" />
+    </LinearLayout>
+
+    <!--
+      进度条：靠 scaleX 从 1 缩到 0（pivot 在左端），不是改宽度——
+      改宽度每帧都要重新布局，而缩放只走绘制。
+    -->
+    <View
+        android:id="@+id/parse_toast_bar"
+        android:layout_width="match_parent"
+        android:layout_height="3dp"
+        android:background="@color/toast_bar" />
+
+</LinearLayout>

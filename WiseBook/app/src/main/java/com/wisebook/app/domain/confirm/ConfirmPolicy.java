@@ -4,6 +4,8 @@ import com.wisebook.app.data.local.entity.DraftEntity;
 import com.wisebook.app.domain.model.AmountRuleCheck;
 import com.wisebook.app.domain.model.ConfidenceFlag;
 import com.wisebook.app.domain.model.ConfirmMode;
+import com.wisebook.app.domain.model.DraftSource;
+import com.wisebook.app.domain.model.OccurredAtSource;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -75,9 +77,15 @@ public final class ConfirmPolicy {
      *
      * @param draft                待判定的草稿
      * @param duplicateHit         去重键是否已命中账目（D1 §5.2 条件 7）
-     * @param draftsInBatch        本次输入拆出的草稿总数（条件 8）
+     * @param draftsInBatch        本次输入拆出的草稿总数（条件 8）。
+     *                             ⚠️ 现在恒传 1 = 条件 8 不启用，原因见方法体里的说明
      * @param mode                 当前确认档位
      * @param largeThresholdCents  大额阈值（分），仅档位二使用
+     *
+     * <p><b>条件 9（2026-10-08 新增）</b>：截图入口的时间来自 {@code FALLBACK} 时也要确认。
+     * 账单截图几乎必然带交易时间，读不出来说明这段版面确实没有可用时间，
+     * 而 {@code occurred_at} 会静默落到「今天此刻」——既错时间，又让去重键跟着错。
+     * 它只挂截图入口，理由见方法体里的说明。
      */
     public static Verdict decide(DraftEntity draft,
                                  boolean duplicateHit,
@@ -148,8 +156,26 @@ public final class ConfirmPolicy {
         }
 
         // ---------------- 条件 8：拆分场景一律确认（拆分边界是模型最易出错处）
+        // ⚠️ 目前不会触发：唯一的调用方（DraftRepository.persist）恒传 draftsInBatch = 1，
+        // 也就是**2026-10-08 用户明确决定"不一律确认"**——多笔时每笔各判各的，
+        // 免确认条件满足就直接入账，用户事后在账本里改或撤。
+        // 代码留在这里是因为它是这条规则唯一的开关：哪天要接，改调用方一处即可，
+        // 但**文字与截图两个入口要一起接**（否则同为多笔、行为不一致）。
         if (draftsInBatch > 1) {
             reasons.add("本次输入拆出了 " + draftsInBatch + " 笔，拆分场景一律确认");
+        }
+
+        // ---------------- 条件 9：截图入口没读到交易时间（2026-10-08）
+        // 账单截图几乎必然带交易时间，读不出来本身就是异常信号：这张图/这一段确实
+        // 没有可用时间，occurred_at 会落到「今天此刻」——那是猜的。猜错的代价不止是
+        // 时间不对，去重键里含发生时间，它还会让同一笔在重叠截图里双双入账。
+        // 让它过一眼，比静默记错便宜得多。
+        //
+        // 刻意只挂截图入口：文字入口说「打车 30」本来就没提时间，一律要求确认会让
+        // 档位失去区分度——HANDOFF 决策 20 把 payment_method 降级就是为了避开这个坑。
+        if (draft.source == DraftSource.IMAGE
+                && draft.occurredAtSource == OccurredAtSource.FALLBACK) {
+            reasons.add("这张图里没读到交易时间，暂按当前时间记账，请核对");
         }
 
         return new Verdict(reasons.isEmpty() ? Decision.DIRECT_POST : Decision.NEEDS_CONFIRM, reasons);

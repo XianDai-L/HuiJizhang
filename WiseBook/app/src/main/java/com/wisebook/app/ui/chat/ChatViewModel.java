@@ -44,7 +44,7 @@ public class ChatViewModel extends ViewModel {
         public final long draftId;
         /** 已经写进账本的那笔账目 id；没有则为 -1 */
         public final long entryId;
-        /** 一图多笔且还有要核对的 → 点结果行去「待处理」看整批 */
+        /** 一次提交拆出多笔、且其中还有要核对的 → 点结果行去「待处理」看整批 */
         public final boolean openPendingList;
 
         private UiState(boolean parsing, String summary, String detail, boolean error,
@@ -112,7 +112,11 @@ public class ChatViewModel extends ViewModel {
         return state;
     }
 
-    /** 提交一句输入。参数与线程调度都在这里收口，Activity 只管调用与渲染 */
+    /**
+     * 提交一句输入。参数与线程调度都在这里收口，Activity 只管调用与渲染。
+     *
+     * <p><b>一句话可能拆出多笔</b>（决策 50）：结果是批量的，只是单笔时读起来像单笔。
+     */
     public void submit(String rawInput) {
         String input = rawInput == null ? "" : rawInput.trim();
         if (input.isEmpty()) {
@@ -128,16 +132,16 @@ public class ChatViewModel extends ViewModel {
 
         state.setValue(UiState.parsing());
         executor.execute(() -> {
-            DraftRepository.SubmitReport report = draftRepository.submit(input);
-            state.postValue(toState(report));
+            DraftRepository.BatchSubmitReport report = draftRepository.submit(input);
+            state.postValue(toTextState(report));
         });
     }
 
     /**
      * 提交一张截图。可能读出好几笔（P2「一图多笔」）。
      *
-     * <p>与 {@link #submit} 的区别只有两处：入口条件换成"有没有 OCR 能力"，
-     * 以及结果是批量的。解析、落库、档位判定全在仓储层里，与文字入口共用同一套。
+     * <p>与 {@link #submit} 的区别只有入口条件（"有没有 OCR 能力"）。
+     * 两者结果都是批量的，解析、落库、档位判定全在仓储层里共用同一套。
      */
     public void submitImage(byte[] imageBytes, String mimeType, String displayName) {
         if (imageBytes == null || imageBytes.length == 0) {
@@ -154,32 +158,46 @@ public class ChatViewModel extends ViewModel {
         }
         state.setValue(UiState.parsing());
         executor.execute(() -> {
-            DraftRepository.ImageSubmitReport report =
+            DraftRepository.BatchSubmitReport report =
                     draftRepository.submitImage(imageBytes, mimeType, displayName);
-            state.postValue(toState(report));
+            state.postValue(toImageState(report));
         });
     }
 
-    private static UiState toState(DraftRepository.SubmitReport report) {
+    /**
+     * 文字入口的结果渲染。
+     *
+     * <p>与 {@link #toImageState} 的差别只有一处：这里多一行「模型调用 N 次」。
+     * 留着它是有意的——答辩演示时能直接看到「重试一次后通过」这条容错设计真的在起作用。
+     * （截图入口那行在 2026-10-07 被移走了，因为首页最缺纵向空间，见 HANDOFF 决策 48。）
+     */
+    private static UiState toTextState(DraftRepository.BatchSubmitReport report) {
+        String summary = report.summary();
+        String reportDetail = report.detail();
         StringBuilder detail = new StringBuilder();
-        if (report.detail != null && !report.detail.isEmpty()) {
-            detail.append(report.detail);
+        if (reportDetail != null && !reportDetail.isEmpty()) {
+            detail.append(reportDetail);
         }
         if (detail.length() > 0) {
             detail.append('\n');
         }
-        // 把调用次数亮出来是有意的：答辩演示时能直接看到「重试一次后通过」
-        // 这条容错设计真的在起作用，而不是只写在文档里
-        detail.append("模型调用 ").append(report.attemptCount).append(" 次");
-        if (report.firstAttemptSucceeded) {
-            detail.append("，首次就通过");
+        // 整批只调一次模型（重试也算在同一次解析里），所以取第一条的次数就是这一批的次数，
+        // 不能把各笔的次数相加——那是把同一次解析数了好多遍
+        DraftRepository.SubmitReport first =
+                report.reports.isEmpty() ? null : report.reports.get(0);
+        if (first != null) {
+            detail.append("模型调用 ").append(first.attemptCount).append(" 次");
+            if (first.firstAttemptSucceeded) {
+                detail.append("，首次就通过");
+            }
         }
 
-        return UiState.result(report.summary, detail.toString(),
-                report.outcome.draftId, report.outcome.entryId);
+        return UiState.result(summary, detail.toString(),
+                report.primaryDraftId(), report.primaryEntryId(),
+                report.shouldOpenPendingList());
     }
 
-    private static UiState toState(DraftRepository.ImageSubmitReport report) {
+    private static UiState toImageState(DraftRepository.BatchSubmitReport report) {
         if (!report.isOk()) {
             return UiState.error(report.summary());
         }

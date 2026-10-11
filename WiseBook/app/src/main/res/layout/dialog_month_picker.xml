@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  选月份：两列滚轮（年 + 月）。
+
+  用 NumberPicker 而不是日期选择器：这里只需要年与月，
+  套一个"选某一天"的控件会让用户以为自己得挑个日子。
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center"
+    android:orientation="horizontal"
+    android:paddingStart="@dimen/space_6"
+    android:paddingTop="@dimen/space_2"
+    android:paddingEnd="@dimen/space_6"
+    android:paddingBottom="@dimen/space_2">
+
+    <NumberPicker
+        android:id="@+id/picker_year"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1" />
+
+    <NumberPicker
+        android:id="@+id/picker_month"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1" />
+
+</LinearLayout>

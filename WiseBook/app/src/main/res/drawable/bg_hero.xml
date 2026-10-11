@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  首页概览条（本月支出）的底：深色对角渐变。
+  它是全屏唯一一块深色，用来承担「本月花了多少」这个最重的信息；
+  深色值在 values-night 里单独调过 —— 深色页面上再加深会糊进背景。
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:angle="315"
+        android:startColor="@color/hero_start"
+        android:endColor="@color/hero_end"
+        android:type="linear" />
+    <corners android:radius="@dimen/radius_card" />
+</shape>

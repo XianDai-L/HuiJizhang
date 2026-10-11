@@ -4,17 +4,21 @@
   只列末级、只返回末级，与 D1 §6.2「账目一律挂最末级」保持一致。
 
   横向用 HorizontalScrollView：一级分类有十来个，窄屏上排不下要能横划。
+
+  2026-10-07 换视觉：二级列表加了行间分隔线、左右留白交给容器统一给
+  （原来每行自己带 20dp，和一级标签的边距对不齐）。
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:paddingTop="12dp">
+    android:paddingTop="@dimen/space_4">
 
     <HorizontalScrollView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:clipToPadding="false"
         android:scrollbars="none">
 
         <LinearLayout
@@ -22,20 +26,25 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:paddingStart="20dp"
-            android:paddingEnd="20dp" />
+            android:paddingStart="@dimen/page_padding_h"
+            android:paddingEnd="@dimen/page_padding_h" />
     </HorizontalScrollView>
 
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp">
+        android:layout_marginTop="@dimen/space_3"
+        android:scrollbars="none">
 
         <LinearLayout
             android:id="@+id/child_list"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:divider="@drawable/divider_line"
             android:orientation="vertical"
+            android:paddingStart="@dimen/page_padding_h"
+            android:paddingEnd="@dimen/page_padding_h"
+            android:showDividers="middle"
             tools:ignore="UselessParent" />
     </ScrollView>
 

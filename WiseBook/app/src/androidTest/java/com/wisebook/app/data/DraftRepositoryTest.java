@@ -63,6 +63,8 @@ public class DraftRepositoryTest {
     private DraftRepository draftRepository;
     private CategoryTree tree;
     private EvidenceStore evidenceStore;
+    /** 测试里账本固定为一个：账本维度就是 user_id（2026-10-11） */
+    private CurrentLedger ledger;
 
     @Before
     public void setUp() {
@@ -70,14 +72,15 @@ public class DraftRepositoryTest {
         db = Room.inMemoryDatabaseBuilder(context, WiseBookDatabase.class)
                 .allowMainThreadQueries()
                 .build();
-        CategorySeeder.seedIfEmpty(db);
+        CategorySeeder.seedIfEmpty(db, USER_ID);
 
+        ledger = () -> USER_ID;
         settingsRepository = new SettingsRepository(db);
-        categoryRepository = new CategoryRepository(db);
+        categoryRepository = new CategoryRepository(db, ledger);
         evidenceStore = new EvidenceStore(context.getFilesDir());
-        entryRepository = new EntryRepository(db, evidenceStore);
+        entryRepository = new EntryRepository(db, evidenceStore, ledger);
         draftRepository = new DraftRepository(db, settingsRepository, categoryRepository,
-                entryRepository, failingRuntime(), evidenceStore);
+                entryRepository, failingRuntime(), evidenceStore, ledger);
         tree = categoryRepository.loadTree(USER_ID);
     }
 
@@ -119,7 +122,7 @@ public class DraftRepositoryTest {
         EntryRepository.PostOutcome again = entryRepository.post(draftId, false);
 
         assertEquals(EntryRepository.PostOutcome.Kind.ALREADY_POSTED, again.kind);
-        assertEquals("第二次调用不得新增账目", 1, db.entryDao().count());
+        assertEquals("第二次调用不得新增账目", 1, db.entryDao().count(USER_ID));
     }
 
     @Test
@@ -131,7 +134,7 @@ public class DraftRepositoryTest {
         EntryRepository.PostOutcome outcome = entryRepository.post(draftId, false);
 
         assertEquals(EntryRepository.PostOutcome.Kind.FAILED, outcome.kind);
-        assertEquals(0, db.entryDao().count());
+        assertEquals(0, db.entryDao().count(USER_ID));
     }
 
     @Test
@@ -146,7 +149,7 @@ public class DraftRepositoryTest {
 
         assertEquals(EntryRepository.PostOutcome.Kind.FAILED, outcome.kind);
         assertTrue(outcome.message.contains("发生时间"));
-        assertEquals(0, db.entryDao().count());
+        assertEquals(0, db.entryDao().count(USER_ID));
     }
 
     @Test
@@ -159,7 +162,7 @@ public class DraftRepositoryTest {
         long draftId = db.draftDao().insert(draft);
 
         assertTrue("缺支付方式不该拦住落账", entryRepository.post(draftId, false).isOk());
-        assertEquals(1, db.entryDao().count());
+        assertEquals(1, db.entryDao().count(USER_ID));
     }
 
     // ------------------------------------------------------ 进确认流程
@@ -174,7 +177,7 @@ public class DraftRepositoryTest {
                 draftRepository.persist(draft, settings, tree, 1, true);
 
         assertEquals(DraftRepository.SubmitOutcome.Kind.NEEDS_CONFIRM, report.outcome.kind);
-        assertEquals(0, db.entryDao().count());
+        assertEquals(0, db.entryDao().count(USER_ID));
         assertTrue("要能说清为什么需要确认", report.detail.contains("大额阈值"));
 
         DraftEntity stored = db.draftDao().findById(report.outcome.draftId);
@@ -193,7 +196,7 @@ public class DraftRepositoryTest {
                         tree, 1, true);
 
         assertEquals(DraftRepository.SubmitOutcome.Kind.NEEDS_CONFIRM, report.outcome.kind);
-        assertEquals(0, db.entryDao().count());
+        assertEquals(0, db.entryDao().count(USER_ID));
     }
 
     @Test
@@ -201,14 +204,94 @@ public class DraftRepositoryTest {
         // D1 §7：命中疑似重复只捞出来给用户看，绝不自动合并
         SettingEntity settings = settingsRepository.loadOrInit(USER_ID);
         draftRepository.persist(cleanDraft(), settings, tree, 1, true);
-        assertEquals(1, db.entryDao().count());
+        assertEquals(1, db.entryDao().count(USER_ID));
 
         DraftRepository.SubmitReport second =
                 draftRepository.persist(cleanDraft(), settings, tree, 1, true);
 
         assertEquals(DraftRepository.SubmitOutcome.Kind.NEEDS_CONFIRM, second.outcome.kind);
-        assertEquals("疑似重复的那笔不能自己写进去", 1, db.entryDao().count());
+        assertEquals("疑似重复的那笔不能自己写进去", 1, db.entryDao().count(USER_ID));
         assertTrue(second.detail.contains("重复"));
+    }
+
+    @Test
+    public void screenshotDraftWithGuessedDateIsCaughtBySameMoment() {
+        // 用户 2026-10-08 反馈的场景：同一笔账单在两张重叠截图里各被读一次，
+        // 其中一张的日期没读到（occurred_at 落到今天）。去重键里含发生时间，
+        // 两条键就此对不上，严格判重捞不出来——这时退到「方向 + 金额 + 时分」
+        SettingEntity settings = settingsRepository.loadOrInit(USER_ID);
+
+        DraftEntity first = cleanDraft();
+        first.source = DraftSource.IMAGE;
+        draftRepository.persist(first, settings, tree, 1, true);
+        assertEquals(1, db.entryDao().count(USER_ID));
+
+        DraftEntity second = cleanDraft();
+        second.source = DraftSource.IMAGE;
+        second.occurredAtSource = OccurredAtSource.INFERRED;                 // 日期是猜的
+        second.occurredAt = first.occurredAt - 6L * 24 * 60 * 60 * 1000;     // 日期差 6 天、时分相同
+
+        DraftRepository.SubmitReport report =
+                draftRepository.persist(second, settings, tree, 1, true);
+
+        assertEquals(DraftRepository.SubmitOutcome.Kind.NEEDS_CONFIRM, report.outcome.kind);
+        assertEquals("疑似重复的那笔不能自己写进去", 1, db.entryDao().count(USER_ID));
+        assertTrue(report.detail.contains("重复"));
+    }
+
+    @Test
+    public void screenshotDraftAtAnotherMomentIsNotTreatedAsDuplicate() {
+        // 判据只在「时刻也相同」时成立：同金额但差一小时的消费是真实的两笔
+        SettingEntity settings = settingsRepository.loadOrInit(USER_ID);
+
+        DraftEntity first = cleanDraft();
+        first.source = DraftSource.IMAGE;
+        draftRepository.persist(first, settings, tree, 1, true);
+
+        DraftEntity second = cleanDraft();
+        second.source = DraftSource.IMAGE;
+        second.occurredAtSource = OccurredAtSource.INFERRED;
+        second.occurredAt = first.occurredAt - 6L * 24 * 60 * 60 * 1000 + 60L * 60 * 1000;
+
+        DraftRepository.SubmitReport report =
+                draftRepository.persist(second, settings, tree, 1, true);
+
+        assertEquals(DraftRepository.SubmitOutcome.Kind.AUTO_POSTED, report.outcome.kind);
+        assertEquals(2, db.entryDao().count(USER_ID));
+    }
+
+    @Test
+    public void textDraftIsNotJudgedByTheLooseRule() {
+        // 文字入口说「打车 30」本来就没提时间，落 INFERRED 是常态，
+        // 拿它去比时刻没有意义——这条判据只挂截图入口
+        SettingEntity settings = settingsRepository.loadOrInit(USER_ID);
+
+        draftRepository.persist(cleanDraft(), settings, tree, 1, true);
+
+        DraftEntity second = cleanDraft();
+        second.occurredAtSource = OccurredAtSource.INFERRED;
+        second.occurredAt = FIXED_MILLIS - 6L * 24 * 60 * 60 * 1000;
+
+        DraftRepository.SubmitReport report =
+                draftRepository.persist(second, settings, tree, 1, true);
+
+        assertEquals(DraftRepository.SubmitOutcome.Kind.AUTO_POSTED, report.outcome.kind);
+    }
+
+    @Test
+    public void screenshotDraftWithoutAnyTimeGoesToConfirm() {
+        // 条件 9：账单截图几乎必然带交易时间，读不出来就不该静默记成「今天此刻」
+        SettingEntity settings = settingsRepository.loadOrInit(USER_ID);
+        DraftEntity draft = cleanDraft();
+        draft.source = DraftSource.IMAGE;
+        draft.occurredAtSource = OccurredAtSource.FALLBACK;
+
+        DraftRepository.SubmitReport report =
+                draftRepository.persist(draft, settings, tree, 1, true);
+
+        assertEquals(DraftRepository.SubmitOutcome.Kind.NEEDS_CONFIRM, report.outcome.kind);
+        assertEquals(0, db.entryDao().count(USER_ID));
+        assertTrue(report.detail.contains("没读到交易时间"));
     }
 
     @Test
@@ -271,7 +354,7 @@ public class DraftRepositoryTest {
         EntryRepository.PostOutcome outcome = draftRepository.confirmAndPost(draftId);
 
         assertTrue(outcome.isNewlyPosted());
-        assertEquals(1, db.entryDao().count());
+        assertEquals(1, db.entryDao().count(USER_ID));
 
         DraftEntity stored = db.draftDao().findById(draftId);
         assertEquals(DraftStatus.POSTED, stored.status);
@@ -289,7 +372,7 @@ public class DraftRepositoryTest {
         EntryRepository.PostOutcome again = draftRepository.confirmAndPost(draftId);
 
         assertEquals(EntryRepository.PostOutcome.Kind.ALREADY_POSTED, again.kind);
-        assertEquals(1, db.entryDao().count());
+        assertEquals(1, db.entryDao().count(USER_ID));
     }
 
     @Test
@@ -302,7 +385,7 @@ public class DraftRepositoryTest {
         db.draftDao().update(draft);
 
         assertTrue(draftRepository.confirmAndPost(draftId).isNewlyPosted());
-        assertEquals(1, db.entryDao().count());
+        assertEquals(1, db.entryDao().count(USER_ID));
     }
 
     @Test
@@ -314,7 +397,7 @@ public class DraftRepositoryTest {
         DraftEntity stored = db.draftDao().findById(draftId);
         assertNotNull("丢弃是改状态，不是删行：原始输入要留给排查", stored);
         assertEquals(DraftStatus.DISCARDED, stored.status);
-        assertEquals(0, db.entryDao().count());
+        assertEquals(0, db.entryDao().count(USER_ID));
         assertEquals("丢弃后不再出现在待处理里", 0, draftRepository.countOpenDrafts());
     }
 
@@ -332,7 +415,7 @@ public class DraftRepositoryTest {
                 edit, settingsRepository.loadOrInit(USER_ID), tree);
 
         assertEquals(DraftRepository.SubmitOutcome.Kind.AUTO_POSTED, report.outcome.kind);
-        assertEquals(1, db.entryDao().count());
+        assertEquals(1, db.entryDao().count(USER_ID));
         assertEquals(DraftStatus.POSTED, db.draftDao().findById(draftId).status);
     }
 
@@ -457,12 +540,16 @@ public class DraftRepositoryTest {
     }
 
     /**
-     * 截图提交用的运行时：转写返回预设文本、拆笔返回预设 JSON，都不碰网络。
+     * 解析提交用的替身运行时：转写返回预设文本、结构化返回预设 JSON，都不碰网络。
      *
-     * <p>有了它，「一图多笔」这条链路就能在真库上被验——走的是与线上完全相同的
-     * {@code ImageDraftParser} → {@code DraftAssembler} → {@code persist}。
+     * <p>有了它，「一句话多笔」与「一图多笔」两条链路都能在真库上被验——走的是与线上
+     * 完全相同的 {@code ChatDraftParser} / {@code ImageDraftParser} → {@code DraftAssembler}
+     * → {@code persist}。
+     *
+     * <p>文字入口不会用到转写，所以那边把 {@code transcript} 传空串即可：
+     * 两个入口共用一个替身，本身就是"它们走同一条管线"的证据。
      */
-    private static LlmRuntime imageRuntime(String transcript, String batchPayload) {
+    private static LlmRuntime cannedRuntime(String transcript, String batchPayload) {
         return new LlmRuntime() {
             @Override
             public LlmClient client() {
@@ -492,6 +579,51 @@ public class DraftRepositoryTest {
         };
     }
 
+    // ------------------------------------------------------ 文字入口（一句多笔，决策 50）
+
+    /**
+     * 一句话里含好几笔时，每一笔都成为一张独立草稿——与截图入口同一种处理。
+     *
+     * <p>这是决策 50 的端到端守卫：P1 的做法是"只落第一笔 + 打存疑标签强制确认"
+     * （决策 14），现在改由批量工具直接拆笔，判据与落库路径与截图入口共用。
+     *
+     * <p>断言用 {@code findById} 而不是 {@code findOpen()}：同一次输入的两张草稿
+     * {@code created_at} 相同，列表查询在这种并列上的顺序没有定义，
+     * 拿它断顺序会写出一条"碰巧过"的用例（HANDOFF §8-27 那条教训）。
+     */
+    @Test
+    public void submitCreatesOneDraftPerTransactionForTextInput() {
+        String payload = "{\"drafts\":["
+                + "{\"direction\":\"expense\",\"amountCents\":800,"
+                + "\"categoryPath\":\"餐饮>外卖\"},"
+                + "{\"direction\":\"expense\",\"amountCents\":1700,"
+                + "\"categoryPath\":\"交通>打车\"}]}";
+        DraftRepository repository = new DraftRepository(db, settingsRepository,
+                categoryRepository, entryRepository, cannedRuntime("", payload), evidenceStore,
+                ledger);
+
+        DraftRepository.BatchSubmitReport report = repository.submit("早饭8块，打车17");
+
+        assertTrue(report.isOk());
+        assertEquals("一笔一张草稿", 2, report.draftCount());
+
+        DraftEntity first = db.draftDao().findById(report.reports.get(0).outcome.draftId);
+        DraftEntity second = db.draftDao().findById(report.reports.get(1).outcome.draftId);
+        assertEquals(Long.valueOf(800L), first.amountCents);
+        assertEquals(Long.valueOf(1700L), second.amountCents);
+
+        assertEquals("同一次输入的两笔共享批次标签", first.batchId, second.batchId);
+        assertTrue("标签要能看出是文字入口来的（截图入口是 IMG-）",
+                first.batchId.startsWith("TXT-"));
+        assertEquals(0, first.splitIndex);
+        assertEquals("序号按句中出现次序", 1, second.splitIndex);
+
+        assertEquals(DraftSource.TEXT_CHAT, first.source);
+        assertEquals(EvidenceType.TEXT, first.evidenceType);
+        assertNull("文字入口没有原图", first.evidenceRef);
+        assertEquals("两笔都留着同一句原话", "早饭8块，打车17", second.rawInput);
+    }
+
     // ------------------------------------------------------ 截图入口（一图多笔）
 
     @Test
@@ -501,16 +633,16 @@ public class DraftRepositoryTest {
                 + "{\"direction\":\"expense\",\"amountCents\":700,\"merchant\":\"收款方甲\"},"
                 + "{\"direction\":\"expense\",\"amountCents\":1500,\"merchant\":\"收款方乙\"}]}";
         DraftRepository repository = new DraftRepository(db, settingsRepository,
-                categoryRepository, entryRepository, imageRuntime(transcript, payload),
-                evidenceStore);
+                categoryRepository, entryRepository, cannedRuntime(transcript, payload),
+                evidenceStore, ledger);
 
-        DraftRepository.ImageSubmitReport report = repository.submitImage(
+        DraftRepository.BatchSubmitReport report = repository.submitImage(
                 new byte[]{1, 2, 3}, "image/jpeg", "相册截图");
 
         assertTrue(report.isOk());
         assertEquals("一笔一张草稿", 2, report.draftCount());
 
-        List<DraftEntity> drafts = db.draftDao().findOpen();
+        List<DraftEntity> drafts = db.draftDao().findOpen(USER_ID);
         assertEquals(2, drafts.size());
         assertEquals("同一张图的两笔共享批次标签", drafts.get(0).batchId, drafts.get(1).batchId);
         assertEquals(0, drafts.get(0).splitIndex);
@@ -526,14 +658,14 @@ public class DraftRepositoryTest {
     @Test
     public void submitImageWithoutTranscriberFailsBeforeCallingAnything() {
         DraftRepository repository = new DraftRepository(db, settingsRepository,
-                categoryRepository, entryRepository, failingRuntime(), evidenceStore);
+                categoryRepository, entryRepository, failingRuntime(), evidenceStore, ledger);
 
-        DraftRepository.ImageSubmitReport report = repository.submitImage(
+        DraftRepository.BatchSubmitReport report = repository.submitImage(
                 new byte[]{1, 2, 3}, "image/jpeg", "相册截图");
 
         assertFalse(report.isOk());
         assertTrue("要说清缺的是哪一家的 Key", report.summary().contains("硅基流动"));
-        assertEquals("连库都不该动", 0, db.draftDao().findOpen().size());
+        assertEquals("连库都不该动", 0, db.draftDao().findOpen(USER_ID).size());
     }
 
     /** 「一并删」：撤销账目之后原图不该留在磁盘上（HANDOFF 决策 47） */
@@ -543,9 +675,9 @@ public class DraftRepositoryTest {
                 + "\"amountRaw\":\"￥7.00\",\"merchant\":\"某店\"}]}";
         DraftRepository repository = new DraftRepository(db, settingsRepository,
                 categoryRepository, entryRepository,
-                imageRuntime("￥7.00 某店", payload), evidenceStore);
+                cannedRuntime("￥7.00 某店", payload), evidenceStore, ledger);
 
-        DraftRepository.ImageSubmitReport report = repository.submitImage(
+        DraftRepository.BatchSubmitReport report = repository.submitImage(
                 new byte[]{1, 2, 3}, "image/jpeg", "相册截图");
         assertTrue(report.isOk());
 

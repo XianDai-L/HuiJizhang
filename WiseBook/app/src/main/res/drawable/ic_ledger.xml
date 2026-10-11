@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 账本。线条风格：颜色一律写黑，由 ImageView 的 tint 决定实际颜色 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:pathData="M6,3.2h10.8a1.6,1.6 0 0,1 1.6,1.6v14.4a1.6,1.6 0 0,1 -1.6,1.6H6a1.6,1.6 0 0,1 -1.6,-1.6V4.8A1.6,1.6 0 0,1 6,3.2z"
+        android:fillColor="#00000000"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="1.8"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M8,3.2V20.8M11.2,8h4.6M11.2,12h4.6"
+        android:fillColor="#00000000"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="1.8"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+</vector>

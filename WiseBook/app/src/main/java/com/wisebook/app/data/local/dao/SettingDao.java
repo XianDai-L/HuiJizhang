@@ -28,4 +28,8 @@ public interface SettingDao {
      */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     void upsert(SettingEntity setting);
+
+    /** 删除账本时连同它的设置行一起清掉（2026-10-11） */
+    @Query("DELETE FROM t_setting WHERE user_id = :userId")
+    void deleteByUser(long userId);
 }
